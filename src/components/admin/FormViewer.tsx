@@ -82,15 +82,15 @@ export function FormViewer({ formulario, onBack }: FormViewerProps) {
     }, {} as Record<string, Foto[]>);
   };
 
-  const nomeSecoes = {
-    'dados_inspecionado': 'Dados do Inspecionado',
-    'epi_basico': 'EPI Básico',
-    'epi_altura': 'EPI para Trabalho em Altura',
-    'epi_eletrico': 'EPI para Trabalhos Elétricos',
-    'inspecao_geral': 'Inspeção Geral',
-    'conclusao': 'Conclusão',
-    'outros': 'Outras Fotos'
-  };
+  // const nomeSecoes = {
+  //   'dados_inspecionado': 'Dados do Inspecionado',
+  //   'epi_basico': 'EPI Básico',
+  //   'epi_altura': 'EPI para Trabalho em Altura',
+  //   'epi_eletrico': 'EPI para Trabalhos Elétricos',
+  //   'inspecao_geral': 'Inspeção Geral',
+  //   'conclusao': 'Conclusão',
+  //   'outros': 'Outras Fotos'
+  // };
 
   if (error) {
     return (

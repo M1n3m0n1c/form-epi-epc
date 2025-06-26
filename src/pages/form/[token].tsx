@@ -2,6 +2,7 @@ import { FormContainer, type FormData } from '@/components/form/FormContainer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase/client';
+import type { TablesInsert } from '@/lib/supabase/database.types';
 import {
   updateFormularioStatus,
   validateFormToken,
@@ -125,7 +126,7 @@ export default function FormPage() {
     try {
       const { data, error } = await supabase
         .from('respostas')
-        .select('inspecionado_nome, data_resposta, created_at')
+        .select('inspecionado_nome, created_at')
         .eq('formulario_id', formularioId)
         .single();
 
@@ -136,7 +137,7 @@ export default function FormPage() {
 
       return {
         nome_completo: data.inspecionado_nome,
-        data_resposta: data.data_resposta,
+        data_resposta: data.created_at, // usando created_at como data_resposta
         created_at: data.created_at
       };
     } catch (error) {
@@ -201,63 +202,65 @@ export default function FormPage() {
 
       // Inserir resposta no banco de dados
       console.log('📝 Inserindo resposta para formulário:', formulario.id);
+      const insertPayload: TablesInsert<'respostas'> = {
+        formulario_id: formulario.id,
+        empresa: formulario.empresa,
+
+        // Dados do responsável pela inspeção (técnico/engenheiro de segurança)
+        responsavel_nome: sanitizedFormData.responsavel_nome,
+        responsavel_cpf: sanitizedFormData.responsavel_cpf,
+        responsavel_funcao: sanitizedFormData.responsavel_funcao,
+
+        // Dados da pessoa inspecionada
+        inspecionado_nome: sanitizedFormData.inspecionado_nome,
+        inspecionado_cpf: sanitizedFormData.inspecionado_cpf,
+        inspecionado_funcao: sanitizedFormData.inspecionado_funcao,
+        regional: sanitizedFormData.regional || '',
+
+        // EPI Básico (converter null para false para campos obrigatórios)
+        epi_capacete: sanitizedFormData.epi_capacete ?? false,
+        epi_oculos: sanitizedFormData.epi_oculos ?? false,
+        epi_protetor_auricular: sanitizedFormData.epi_protetor_auricular ?? false,
+        epi_vestimenta: sanitizedFormData.epi_vestimenta ?? true, // obrigatório
+        epi_luvas: sanitizedFormData.epi_luvas ?? false,
+        epi_calcado: sanitizedFormData.epi_calcado ?? false,
+        observacoes_epi_basico: sanitizedFormData.observacoes_epi_basico,
+
+        // Ferramental e Equipamentos
+        ferramental: sanitizedFormData.ferramental,
+        corda_icamento: sanitizedFormData.corda_icamento,
+
+        // EPI Altura
+        trabalho_altura: sanitizedFormData.trabalho_altura,
+        epi_cinto_seguranca: sanitizedFormData.epi_cinto_seguranca,
+        epi_talabarte: sanitizedFormData.epi_talabarte,
+        epi_capacete_jugular: sanitizedFormData.epi_capacete_jugular,
+        observacoes_epi_altura: sanitizedFormData.observacoes_epi_altura,
+
+        // EPI Elétrico
+        trabalho_eletrico: sanitizedFormData.trabalho_eletrico,
+        epi_luvas_isolantes: sanitizedFormData.epi_luvas_isolantes,
+        epi_calcado_isolante: sanitizedFormData.epi_calcado_isolante,
+        epi_capacete_classe_b: sanitizedFormData.epi_capacete_classe_b,
+        observacoes_epi_eletrico: sanitizedFormData.observacoes_epi_eletrico,
+
+        // Inspeção Geral
+        equipamentos_integros: sanitizedFormData.equipamentos_integros ?? true, // obrigatório
+        treinamento_adequado: sanitizedFormData.treinamento_adequado ?? true, // obrigatório
+        certificados_validos: sanitizedFormData.certificados_validos ?? false, // obrigatório
+        reforco_regras_ouro: sanitizedFormData.reforco_regras_ouro,
+        observacoes_inspecao: sanitizedFormData.observacoes_inspecao,
+
+        // Declaração de Responsabilidade
+        declaracao_responsabilidade: sanitizedFormData.declaracao_responsabilidade,
+
+        // Conclusão
+        responsavel_regional: formulario.ufsigla || 'Sistema',
+      };
+
       const { data: insertData, error: insertError } = await supabase
         .from('respostas')
-        .insert({
-          formulario_id: formulario.id,
-          empresa: formulario.empresa,
-
-          // Dados do responsável pela inspeção (técnico/engenheiro de segurança)
-          responsavel_nome: sanitizedFormData.responsavel_nome,
-          responsavel_cpf: sanitizedFormData.responsavel_cpf,
-          responsavel_funcao: sanitizedFormData.responsavel_funcao,
-
-          // Dados da pessoa inspecionada
-          inspecionado_nome: sanitizedFormData.inspecionado_nome,
-          inspecionado_cpf: sanitizedFormData.inspecionado_cpf,
-          inspecionado_funcao: sanitizedFormData.inspecionado_funcao,
-          regional: sanitizedFormData.regional || '',
-
-          // EPI Básico (converter null para false para campos obrigatórios)
-          epi_capacete: sanitizedFormData.epi_capacete ?? false,
-          epi_oculos: sanitizedFormData.epi_oculos ?? false,
-          epi_protetor_auricular: sanitizedFormData.epi_protetor_auricular ?? false,
-          epi_vestimenta: sanitizedFormData.epi_vestimenta ?? false,
-          epi_luvas: sanitizedFormData.epi_luvas ?? false,
-          epi_calcado: sanitizedFormData.epi_calcado ?? false,
-          observacoes_epi_basico: sanitizedFormData.observacoes_epi_basico,
-
-          // Ferramental e Equipamentos
-          ferramental: sanitizedFormData.ferramental,
-          corda_icamento: sanitizedFormData.corda_icamento,
-
-          // EPI Altura (converter null para false para campos obrigatórios se houver trabalho em altura)
-          trabalho_altura: sanitizedFormData.trabalho_altura,
-          epi_cinto_seguranca: sanitizedFormData.epi_cinto_seguranca,
-          epi_talabarte: sanitizedFormData.epi_talabarte,
-          epi_capacete_jugular: sanitizedFormData.epi_capacete_jugular,
-          observacoes_epi_altura: sanitizedFormData.observacoes_epi_altura,
-
-          // EPI Elétrico
-          trabalho_eletrico: sanitizedFormData.trabalho_eletrico,
-          epi_luvas_isolantes: sanitizedFormData.epi_luvas_isolantes,
-          epi_calcado_isolante: sanitizedFormData.epi_calcado_isolante,
-          epi_capacete_classe_b: sanitizedFormData.epi_capacete_classe_b,
-          observacoes_epi_eletrico: sanitizedFormData.observacoes_epi_eletrico,
-
-          // Inspeção Geral
-          equipamentos_integros: sanitizedFormData.equipamentos_integros,
-          treinamento_adequado: sanitizedFormData.treinamento_adequado,
-          certificados_validos: sanitizedFormData.certificados_validos,
-          reforco_regras_ouro: sanitizedFormData.reforco_regras_ouro,
-          observacoes_inspecao: sanitizedFormData.observacoes_inspecao,
-
-          // Declaração de Responsabilidade
-          declaracao_responsabilidade: sanitizedFormData.declaracao_responsabilidade,
-
-          // Conclusão
-          responsavel_regional: formulario.ufsigla || 'Sistema',
-        })
+        .insert(insertPayload)
         .select();
 
       if (insertError) {

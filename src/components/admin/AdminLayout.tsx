@@ -11,7 +11,7 @@ interface AdminLayoutProps {
   onPageChange?: (page: any) => void;
 }
 
-export function AdminLayout({ children, title, subtitle, onBack, activePage, onPageChange }: AdminLayoutProps) {
+export function AdminLayout({ children, title, subtitle, activePage, onPageChange }: AdminLayoutProps) {
   const [activeTab, setActiveTab] = React.useState(activePage || 'dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
@@ -34,13 +34,13 @@ export function AdminLayout({ children, title, subtitle, onBack, activePage, onP
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              {/*<div className="flex-shrink-0 flex items-center">
+              <div className="flex-shrink-0 flex items-center">
                 <img
-                  src={logoTelefonica}
-                  alt="Logo Telefónica"
-                  className="h-8 w-auto mr-3"
+                  src="/src/assets/app-logo.png"
+                  alt="Logo do Sistema"
+                  className="h-14 w-auto mr-3"
                 />
-              </div>*/}
+              </div>
             </div>
 
             {/* Título centralizado */}
@@ -51,7 +51,11 @@ export function AdminLayout({ children, title, subtitle, onBack, activePage, onP
             </div>
 
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-500">Painel Administrativo</span>
+              <img
+                src="/src/assets/logo_tlf.png"
+                alt="Logo TLF"
+                className="h-8 w-auto"
+              />
             </div>
           </div>
         </div>

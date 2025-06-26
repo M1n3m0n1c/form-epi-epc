@@ -386,30 +386,26 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
 
                         {/* Informações principais em grid */}
                         <div className="grid gap-2 text-sm">
-                          {/* Linha 1: Empresa e Regional */}
+                          {/* Linha 1: Data de Criação e UF Sigla */}
                           <div className="flex items-center gap-4">
                             <div className="flex items-center gap-1">
-                              <span className="text-blue-600">🏢</span>
-                              <strong>Empresa:</strong> {formulario.empresa}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <span className="text-green-600">📍</span>
-                              <strong>Regional:</strong> {formulario.regional}
-                            </div>
-                          </div>
-
-                          {/* Linha 2: Data de Criação e UF Sigla */}
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-1">
-                              <span className="text-purple-600">📅</span>
                               <strong>Criado em:</strong> {dataFormatada}
                             </div>
                             {formulario.ufsigla && (
                               <div className="flex items-center gap-1">
-                                <span className="text-orange-600">🏗️</span>
                                 <strong>UF Sigla:</strong> {formulario.ufsigla}
                               </div>
                             )}
+                          </div>
+
+                          {/* Linha 2: Empresa e Regional */}
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-1">
+                              <strong>Empresa:</strong> {formulario.empresa}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <strong>Regional:</strong> {formulario.regional}
+                            </div>
                           </div>
 
                           {/* Linha 3: Dados do Inspecionador e Inspecionado lado a lado */}
