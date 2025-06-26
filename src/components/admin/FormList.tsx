@@ -274,7 +274,7 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
         <CardContent className="space-y-4">
           {/* Campo de busca - destaque principal */}
           <div className="space-y-2">
-            <Label>🔍 Buscar por UFSigla, Nome, CPF, Função ou Regional do Inspecionador/Inspecionado</Label>
+            <Label>Buscar por UFSigla, Nome, CPF, Função ou Regional do Inspecionador/Inspecionado</Label>
             <Input
               type="text"
               placeholder="Digite UFSigla, nome, CPF, função ou regional do inspecionador/inspecionado..."
@@ -337,10 +337,10 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
 
           <div className="flex gap-2">
             <Button onClick={limparFiltros} variant="outline">
-              🔄 Limpar Filtros
+              Limpar Filtros
             </Button>
             <Button onClick={loadFormularios} variant="outline">
-              ↻ Atualizar
+              Atualizar
             </Button>
           </div>
         </CardContent>
