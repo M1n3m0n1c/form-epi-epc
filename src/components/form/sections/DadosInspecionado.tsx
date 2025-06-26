@@ -6,14 +6,15 @@ import type { FormData } from '../FormContainer';
 
 type Formulario = Tables<'formularios'>;
 
-interface IdentificacaoProps {
+interface DadosInspecionadoProps {
   data: FormData;
   onChange: (updates: Partial<FormData>) => void;
   errors: string[];
   formulario: Formulario;
 }
 
-export function Identificacao({ data, onChange, errors }: IdentificacaoProps) {
+
+export function DadosInspecionado({ data, onChange, errors }: DadosInspecionadoProps) {
 
   const handleInputChange = (field: keyof FormData, value: string) => {
     // Passar valor diretamente sem sanitização em tempo real
@@ -37,18 +38,18 @@ export function Identificacao({ data, onChange, errors }: IdentificacaoProps) {
       .replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
   };
 
-  const handleCPFChange = (field: 'responsavel_cpf', value: string) => {
+  const handleCPFChange = (value: string) => {
     const formattedCPF = formatCPF(value);
-    onChange({ [field]: formattedCPF });
+    onChange({ inspecionado_cpf: formattedCPF });
   };
 
   const validateField = (field: keyof FormData, value: string): string | null => {
     switch (field) {
-      case 'responsavel_nome':
+      case 'inspecionado_nome':
         return formValidation.nomeCompleto(value) ? null : 'Nome deve ter pelo menos 3 caracteres e incluir sobrenome';
-      case 'responsavel_cpf':
+      case 'inspecionado_cpf':
         return formValidation.cpf(value) ? null : 'CPF deve ter 11 dígitos';
-      case 'responsavel_funcao':
+      case 'inspecionado_funcao':
         return formValidation.funcao(value) ? null : 'Função deve ter pelo menos 2 caracteres';
       default:
         return null;
@@ -69,109 +70,123 @@ export function Identificacao({ data, onChange, errors }: IdentificacaoProps) {
         </div>
       )}
 
-      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <h4 className="font-medium text-blue-900 mb-2">👨‍🔧 Identificação do Técnico/Engenheiro de Segurança</h4>
-        <p className="text-sm text-blue-800">
-          Preencha seus dados como responsável pela inspeção de EPI/EPC
+      <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+        <h4 className="font-medium text-orange-900 mb-2">🔍 Dados da Pessoa Inspecionada</h4>
+        <p className="text-sm text-orange-800">
+          Preencha os dados da pessoa que está sendo inspecionada quanto ao uso de EPI/EPC
         </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Nome Completo do Técnico */}
+        {/* Nome Completo da Pessoa Inspecionada */}
         <div className="space-y-2">
-          <Label htmlFor="responsavel_nome" className="text-sm font-medium">
-            Seu Nome Completo *
+          <Label htmlFor="inspecionado_nome" className="text-sm font-medium">
+            Nome Completo da Pessoa Inspecionada *
           </Label>
           <Input
-            id="responsavel_nome"
+            id="inspecionado_nome"
             type="text"
-            placeholder="Digite seu nome completo"
-            value={data.responsavel_nome}
-            onChange={(e) => handleInputChange('responsavel_nome', e.target.value)}
+            placeholder="Digite o nome completo"
+            value={data.inspecionado_nome}
+            onChange={(e) => handleInputChange('inspecionado_nome', e.target.value)}
             className={`${
-              data.responsavel_nome && !formValidation.nomeCompleto(data.responsavel_nome)
+              data.inspecionado_nome && !formValidation.nomeCompleto(data.inspecionado_nome)
                 ? 'border-red-500 focus:border-red-500'
                 : ''
             }`}
             maxLength={100}
           />
-          {data.responsavel_nome && !formValidation.nomeCompleto(data.responsavel_nome) && (
+          {data.inspecionado_nome && !formValidation.nomeCompleto(data.inspecionado_nome) && (
             <p className="text-xs text-red-600">
-              {validateField('responsavel_nome', data.responsavel_nome)}
+              {validateField('inspecionado_nome', data.inspecionado_nome)}
             </p>
           )}
           <p className="text-xs text-gray-500">
-            Ex: João Silva Santos
+            Ex: Maria Silva Santos
           </p>
         </div>
 
-        {/* CPF do Técnico */}
+        {/* CPF da Pessoa Inspecionada */}
         <div className="space-y-2">
-          <Label htmlFor="responsavel_cpf" className="text-sm font-medium">
-            Seu CPF *
+          <Label htmlFor="inspecionado_cpf" className="text-sm font-medium">
+            CPF da Pessoa Inspecionada *
           </Label>
           <Input
-            id="responsavel_cpf"
+            id="inspecionado_cpf"
             type="text"
             placeholder="000.000.000-00"
-            value={data.responsavel_cpf}
-            onChange={(e) => handleCPFChange('responsavel_cpf', e.target.value)}
+            value={data.inspecionado_cpf}
+            onChange={(e) => handleCPFChange(e.target.value)}
             className={`${
-              data.responsavel_cpf && !formValidation.cpf(data.responsavel_cpf)
+              data.inspecionado_cpf && !formValidation.cpf(data.inspecionado_cpf)
                 ? 'border-red-500 focus:border-red-500'
                 : ''
             }`}
             maxLength={14}
           />
-          {data.responsavel_cpf && !formValidation.cpf(data.responsavel_cpf) && (
+          {data.inspecionado_cpf && !formValidation.cpf(data.inspecionado_cpf) && (
             <p className="text-xs text-red-600">
-              {validateField('responsavel_cpf', data.responsavel_cpf)}
+              {validateField('inspecionado_cpf', data.inspecionado_cpf)}
             </p>
           )}
           <p className="text-xs text-gray-500">
-            Informe apenas os números do seu CPF
+            Informe apenas os números do CPF
           </p>
         </div>
 
-        {/* Função do Técnico */}
-        <div className="space-y-2 md:col-span-2">
-          <Label htmlFor="responsavel_funcao" className="text-sm font-medium">
-            Sua Função/Cargo *
+        {/* Função da Pessoa Inspecionada */}
+        <div className="space-y-2">
+          <Label htmlFor="inspecionado_funcao" className="text-sm font-medium">
+            Função/Cargo da Pessoa Inspecionada *
           </Label>
           <Input
-            id="responsavel_funcao"
+            id="inspecionado_funcao"
             type="text"
-            placeholder="Ex: Técnico de Segurança do Trabalho, Engenheiro de Segurança"
-            value={data.responsavel_funcao}
-            onChange={(e) => handleInputChange('responsavel_funcao', e.target.value)}
+            placeholder="Ex: Técnico de Telecomunicações"
+            value={data.inspecionado_funcao}
+            onChange={(e) => handleInputChange('inspecionado_funcao', e.target.value)}
             className={`${
-              data.responsavel_funcao && !formValidation.funcao(data.responsavel_funcao)
+              data.inspecionado_funcao && !formValidation.funcao(data.inspecionado_funcao)
                 ? 'border-red-500 focus:border-red-500'
                 : ''
             }`}
             maxLength={50}
           />
-          {data.responsavel_funcao && !formValidation.funcao(data.responsavel_funcao) && (
+          {data.inspecionado_funcao && !formValidation.funcao(data.inspecionado_funcao) && (
             <p className="text-xs text-red-600">
-              {validateField('responsavel_funcao', data.responsavel_funcao)}
+              {validateField('inspecionado_funcao', data.inspecionado_funcao)}
             </p>
           )}
           <p className="text-xs text-gray-500">
-            Informe sua função ou cargo atual
+            Informe a função ou cargo da pessoa
           </p>
         </div>
+
       </div>
 
       {/* Informações Adicionais */}
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <h4 className="font-medium text-blue-900 mb-2">📋 Informações Importantes</h4>
         <ul className="text-sm text-blue-800 space-y-1">
-          <li>• Todos os campos marcados com (*) são obrigatórios</li>
-          <li>• Seus dados serão usados para identificar o responsável pela inspeção</li>
-          <li>• Certifique-se de que as informações estão corretas antes de prosseguir</li>
-          <li>• O CPF será usado para validação e não será compartilhado</li>
+          <li>• Campos marcados com (*) são obrigatórios</li>
+          <li>• Os dados serão usados para identificar a pessoa inspecionada</li>
+          <li>• A regional é opcional, mas pode ajudar na organização dos dados</li>
+          <li>• Certifique-se de que as informações estão corretas</li>
         </ul>
       </div>
+
+      {/* Preview dos dados */}
+      {data.inspecionado_nome && data.inspecionado_cpf && data.inspecionado_funcao && (
+        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+          <h4 className="font-medium text-green-900 mb-2">✅ Resumo dos Dados da Pessoa Inspecionada</h4>
+          <div className="text-sm text-green-800 space-y-1">
+            <p><strong>Nome:</strong> {data.inspecionado_nome}</p>
+            <p><strong>CPF:</strong> {data.inspecionado_cpf}</p>
+            <p><strong>Função:</strong> {data.inspecionado_funcao}</p>
+            {data.regional && <p><strong>Regional:</strong> {data.regional}</p>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

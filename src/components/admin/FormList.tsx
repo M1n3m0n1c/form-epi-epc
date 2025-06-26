@@ -8,13 +8,27 @@ import { useEffect, useState } from 'react';
 
 type Formulario = Tables<'formularios'>;
 
+interface RespostaParcial {
+  responsavel_nome: string;
+  responsavel_cpf: string;
+  responsavel_funcao: string;
+  responsavel_regional: string;
+  inspecionado_nome: string;
+  inspecionado_cpf: string;
+  inspecionado_funcao: string;
+}
+
+interface FormularioComResposta extends Formulario {
+  respostas?: RespostaParcial;
+}
+
 interface FormListProps {
   onViewForm?: (formulario: Formulario) => void;
   onRefresh?: () => void;
 }
 
 export function FormList({ onViewForm, onRefresh }: FormListProps) {
-  const [formularios, setFormularios] = useState<Formulario[]>([]);
+  const [formularios, setFormularios] = useState<FormularioComResposta[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,20 +37,19 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
   const [filtroEmpresa, setFiltroEmpresa] = useState('');
   const [filtroDataInicio, setFiltroDataInicio] = useState('');
   const [filtroDataFim, setFiltroDataFim] = useState('');
-  const [filtroCriador, setFiltroCriador] = useState('');
+  const [filtroBusca, setFiltroBusca] = useState('');
 
   const statusOptions = [
     { value: 'todos', label: 'Todos os Status' },
     { value: 'pendente', label: 'Pendentes' },
-    { value: 'respondido', label: 'Respondidos' },
-    { value: 'expirado', label: 'Expirados' },
+    { value: 'respondido', label: 'Respondidos' }
   ];
 
   const empresas = [
     'Icomon',
     'Telequipe',
     'Tel Telecomunicações',
-    'Eólen',
+    'Eolen',
     'Stein'
   ];
 
@@ -51,14 +64,42 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
 
       const { data, error: fetchError } = await supabase
         .from('formularios')
-        .select('*')
+        .select(`
+          *,
+          respostas (
+            responsavel_nome,
+            responsavel_cpf,
+            responsavel_funcao,
+            responsavel_regional,
+            inspecionado_nome,
+            inspecionado_cpf,
+            inspecionado_funcao
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (fetchError) {
         throw fetchError;
       }
 
-      setFormularios(data || []);
+      // Transformar os dados para o formato esperado
+      const formulariosComResposta = data?.map(formulario => {
+        // Se é um objeto (não array), usar diretamente
+        // Se é array, pegar o primeiro item
+        // Se é null/undefined, deixar undefined
+        const respostaProcessada = formulario.respostas
+          ? (Array.isArray(formulario.respostas)
+              ? (formulario.respostas.length > 0 ? formulario.respostas[0] : undefined)
+              : formulario.respostas)
+          : undefined;
+
+        return {
+          ...formulario,
+          respostas: respostaProcessada
+        };
+      }) || [];
+
+      setFormularios(formulariosComResposta);
 
       if (onRefresh) {
         onRefresh();
@@ -72,8 +113,6 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
   };
 
   const getStatusInfo = (formulario: Formulario) => {
-    const now = new Date();
-
     if (formulario.status === 'respondido') {
       return {
         status: 'respondido',
@@ -83,14 +122,7 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
       };
     }
 
-    if (formulario.data_expiracao && new Date(formulario.data_expiracao) < now) {
-      return {
-        status: 'expirado',
-        label: 'Expirado',
-        color: 'text-red-600 bg-red-50',
-        icon: '❌'
-      };
-    }
+    // Funcionalidade de expiração removida
 
     return {
       status: 'pendente',
@@ -133,11 +165,57 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
         }
       }
 
-      // Filtro por nome do criador
-      if (filtroCriador && formulario.criado_por) {
-        if (!formulario.criado_por.toLowerCase().includes(filtroCriador.toLowerCase())) {
-          return false;
+      // Filtro por busca (UF Sigla, Inspecionador e Inspecionado)
+      if (filtroBusca) {
+        const buscaLower = filtroBusca.toLowerCase();
+
+        // Busca por UF Sigla
+        if (formulario.ufsigla && formulario.ufsigla.toLowerCase().includes(buscaLower)) {
+          return true;
         }
+
+        // Busca por dados do Inspecionador e Inspecionado (se houver resposta)
+        if (formulario.respostas) {
+          const resposta = formulario.respostas;
+
+          // Busca por nome do responsável (inspecionador)
+          if (resposta.responsavel_nome && resposta.responsavel_nome.toLowerCase().includes(buscaLower)) {
+            return true;
+          }
+
+          // Busca por CPF do responsável (inspecionador)
+          if (resposta.responsavel_cpf && resposta.responsavel_cpf.includes(filtroBusca)) {
+            return true;
+          }
+
+          // Busca por função do responsável (inspecionador)
+          if (resposta.responsavel_funcao && resposta.responsavel_funcao.toLowerCase().includes(buscaLower)) {
+            return true;
+          }
+
+          // Busca por regional do responsável (inspecionador)
+          if (resposta.responsavel_regional && resposta.responsavel_regional.toLowerCase().includes(buscaLower)) {
+            return true;
+          }
+
+          // Busca por nome do inspecionado
+          if (resposta.inspecionado_nome && resposta.inspecionado_nome.toLowerCase().includes(buscaLower)) {
+            return true;
+          }
+
+          // Busca por CPF do inspecionado
+          if (resposta.inspecionado_cpf && resposta.inspecionado_cpf.includes(filtroBusca)) {
+            return true;
+          }
+
+          // Busca por função do inspecionado
+          if (resposta.inspecionado_funcao && resposta.inspecionado_funcao.toLowerCase().includes(buscaLower)) {
+            return true;
+          }
+        }
+
+        // Se não encontrou nada e há filtro de busca, não incluir
+        return false;
       }
 
       return true;
@@ -149,7 +227,7 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
     setFiltroEmpresa('');
     setFiltroDataInicio('');
     setFiltroDataFim('');
-    setFiltroCriador('');
+    setFiltroBusca('');
   };
 
   const copyLink = async (token: string) => {
@@ -194,14 +272,14 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
           <CardTitle>🔍 Filtros</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Campo de busca por criador - destaque principal */}
+          {/* Campo de busca - destaque principal */}
           <div className="space-y-2">
-            <Label>🔍 Buscar por Nome do Criador</Label>
+            <Label>🔍 Buscar por UFSigla, Nome, CPF, Função ou Regional do Inspecionador/Inspecionado</Label>
             <Input
               type="text"
-              placeholder="Digite o nome do criador do formulário..."
-              value={filtroCriador}
-              onChange={(e) => setFiltroCriador(e.target.value)}
+              placeholder="Digite UFSigla, nome, CPF, função ou regional do inspecionador/inspecionado..."
+              value={filtroBusca}
+              onChange={(e) => setFiltroBusca(e.target.value)}
               className="w-full"
             />
           </div>
@@ -293,42 +371,107 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
                   : 'Data não disponível';
 
                 return (
-                  <div key={formulario.id} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between">
+                  <div key={formulario.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
+                        {/* Header com Status e Token */}
+                        <div className="flex items-center gap-3 mb-3">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
                             {statusInfo.icon} {statusInfo.label}
                           </span>
-                          <span className="text-sm text-gray-500">
+                          <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded">
                             Token: {formulario.token}
                           </span>
                         </div>
 
-                        <div className="grid gap-1 text-sm">
-                          <div>
-                            <strong>Empresa:</strong> {formulario.empresa} |
-                            <strong> Regional:</strong> {formulario.regional}
+                        {/* Informações principais em grid */}
+                        <div className="grid gap-2 text-sm">
+                          {/* Linha 1: Empresa e Regional */}
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-1">
+                              <span className="text-blue-600">🏢</span>
+                              <strong>Empresa:</strong> {formulario.empresa}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-green-600">📍</span>
+                              <strong>Regional:</strong> {formulario.regional}
+                            </div>
                           </div>
-                          <div>
-                            <strong>Criado em:</strong> {dataFormatada}
-                            {formulario.criado_por && (
-                              <span> | <strong>Por:</strong> {formulario.criado_por}</span>
+
+                          {/* Linha 2: Data de Criação e UF Sigla */}
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-1">
+                              <span className="text-purple-600">📅</span>
+                              <strong>Criado em:</strong> {dataFormatada}
+                            </div>
+                            {formulario.ufsigla && (
+                              <div className="flex items-center gap-1">
+                                <span className="text-orange-600">🏗️</span>
+                                <strong>UF Sigla:</strong> {formulario.ufsigla}
+                              </div>
                             )}
                           </div>
-                          {formulario.data_expiracao && (
-                            <div>
-                              <strong>Expira em:</strong> {new Date(formulario.data_expiracao).toLocaleString('pt-BR')}
+
+                          {/* Linha 3: Dados do Inspecionador e Inspecionado lado a lado */}
+                          {formulario.respostas && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {/* Inspecionador */}
+                              <div className="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-400">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-indigo-600">👨‍💼</span>
+                                  <strong className="text-indigo-800">INSPECIONADOR</strong>
+                                </div>
+                                <div className="space-y-1 text-sm">
+                                  <div>
+                                    <strong>Nome:</strong> {formulario.respostas.responsavel_nome}
+                                  </div>
+                                  <div>
+                                    <strong>CPF:</strong> {formulario.respostas.responsavel_cpf}
+                                  </div>
+                                  <div>
+                                    <strong>Função:</strong> {formulario.respostas.responsavel_funcao}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Inspecionado */}
+                              <div className="bg-teal-50 p-3 rounded-lg border-l-4 border-teal-400">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-teal-600">👷‍♂️</span>
+                                  <strong className="text-teal-800">INSPECIONADO</strong>
+                                </div>
+                                <div className="space-y-1 text-sm">
+                                  <div>
+                                    <strong>Nome:</strong> {formulario.respostas.inspecionado_nome}
+                                  </div>
+                                  <div>
+                                    <strong>CPF:</strong> {formulario.respostas.inspecionado_cpf}
+                                  </div>
+                                  <div>
+                                    <strong>Função:</strong> {formulario.respostas.inspecionado_funcao}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Linha 4: Informação quando não há resposta */}
+                          {!formulario.respostas && formulario.status === 'pendente' && (
+                            <div className="flex items-center gap-1 text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
+                              <span>⏳</span>
+                              <span className="text-sm">Aguardando preenchimento - Dados do inspecionador/inspecionado serão exibidos após resposta</span>
                             </div>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex gap-2">
+                      {/* Botões de ação */}
+                      <div className="flex flex-col gap-2 ml-4">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => copyLink(formulario.token)}
+                          className="whitespace-nowrap"
                         >
                           📋 Copiar Link
                         </Button>
@@ -337,6 +480,7 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
                           <Button
                             size="sm"
                             onClick={() => onViewForm(formulario)}
+                            className="whitespace-nowrap"
                           >
                             👁️ Ver Resposta
                           </Button>

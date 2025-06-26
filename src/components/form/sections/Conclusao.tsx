@@ -199,10 +199,10 @@ export function Conclusao({ data, onChange, errors, formulario }: ConclusaoProps
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <h4 className="font-medium text-blue-900 mb-3">📋 Dados do Formulário</h4>
         <div className="grid gap-2 md:grid-cols-2 text-sm">
-          <p><strong>Responsável pela Criação:</strong> {formulario.criado_por || 'Não informado'}</p>
+                      <p><strong>Site (UFSIGLA):</strong> {formulario.ufsigla || 'Não informado'}</p>
           <p><strong>Regional Responsável:</strong> {formulario.regional || 'Não informada'}</p>
           <p><strong>Data de Criação:</strong> {formulario.created_at ? new Date(formulario.created_at).toLocaleDateString('pt-BR') : 'Não informada'}</p>
-          <p><strong>Data de Expiração:</strong> {formulario.data_expiracao ? new Date(formulario.data_expiracao).toLocaleDateString('pt-BR') : 'Não definida'}</p>
+                      {/* <p><strong>Data de Expiração:</strong> Funcionalidade removida</p> */}
         </div>
       </div>
 

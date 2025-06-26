@@ -12,9 +12,9 @@ export type Database = {
       formularios: {
         Row: {
           created_at: string | null
-          criado_por: string | null
+          ufsigla: string | null
           data_criacao: string | null
-          data_expiracao: string | null
+          // data_expiracao: string | null // Removido
           data_resposta: string | null
           empresa: string
           id: string
@@ -25,9 +25,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          criado_por?: string | null
+          ufsigla?: string | null
           data_criacao?: string | null
-          data_expiracao?: string | null
+          // data_expiracao?: string | null // Removido
           data_resposta?: string | null
           empresa: string
           id?: string
@@ -38,9 +38,9 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          criado_por?: string | null
+          ufsigla?: string | null
           data_criacao?: string | null
-          data_expiracao?: string | null
+          // data_expiracao?: string | null // Removido
           data_resposta?: string | null
           empresa?: string
           id?: string
@@ -108,8 +108,9 @@ export type Database = {
       respostas: {
         Row: {
           certificados_validos: boolean
-          cpf: string
+          corda_icamento: boolean | null
           created_at: string | null
+          declaracao_responsabilidade: boolean | null
           empresa: string
           epi_calcado: boolean
           epi_calcado_isolante: boolean | null
@@ -123,28 +124,36 @@ export type Database = {
           epi_protetor_auricular: boolean
           epi_talabarte: boolean | null
           epi_trava_quedas: boolean | null
-          epi_vestimenta: boolean
+          epi_vestimenta: boolean | null
           epi_vestimenta_antiarco: boolean | null
-          equipamentos_integros: boolean
+          equipamentos_integros: boolean | null
+          ferramental: boolean | null
           formulario_id: string | null
-          funcao: string
           id: string
-          nome_completo: string
+          inspecionado_cpf: string
+          inspecionado_funcao: string
+          inspecionado_nome: string
           observacoes_epi_altura: string | null
           observacoes_epi_basico: string | null
           observacoes_epi_eletrico: string | null
           observacoes_gerais: string | null
           observacoes_inspecao: string | null
           regional: string
+          reforco_regras_ouro: boolean | null
+          responsavel_cpf: string
+          responsavel_funcao: string
+          responsavel_nome: string
           responsavel_regional: string
+          trabalho_altura: boolean | null
           trabalho_eletrico: boolean | null
-          treinamento_adequado: boolean
+          treinamento_adequado: boolean | null
           updated_at: string | null
         }
         Insert: {
           certificados_validos: boolean
-          cpf: string
+          corda_icamento?: boolean | null
           created_at?: string | null
+          declaracao_responsabilidade?: boolean | null
           empresa: string
           epi_calcado: boolean
           epi_calcado_isolante?: boolean | null
@@ -161,25 +170,33 @@ export type Database = {
           epi_vestimenta: boolean
           epi_vestimenta_antiarco?: boolean | null
           equipamentos_integros: boolean
+          ferramental?: boolean | null
           formulario_id?: string | null
-          funcao: string
           id?: string
-          nome_completo: string
+          inspecionado_cpf: string
+          inspecionado_funcao: string
+          inspecionado_nome: string
           observacoes_epi_altura?: string | null
           observacoes_epi_basico?: string | null
           observacoes_epi_eletrico?: string | null
           observacoes_gerais?: string | null
           observacoes_inspecao?: string | null
           regional: string
+          reforco_regras_ouro?: boolean | null
+          responsavel_cpf: string
+          responsavel_funcao: string
+          responsavel_nome: string
           responsavel_regional: string
+          trabalho_altura?: boolean | null
           trabalho_eletrico?: boolean | null
           treinamento_adequado: boolean
           updated_at?: string | null
         }
         Update: {
           certificados_validos?: boolean
-          cpf?: string
+          corda_icamento?: boolean | null
           created_at?: string | null
+          declaracao_responsabilidade?: boolean | null
           empresa?: string
           epi_calcado?: boolean
           epi_calcado_isolante?: boolean | null
@@ -195,20 +212,27 @@ export type Database = {
           epi_trava_quedas?: boolean | null
           epi_vestimenta?: boolean
           epi_vestimenta_antiarco?: boolean | null
-          equipamentos_integros?: boolean
+          equipamentos_integros?: boolean | null
+          ferramental?: boolean | null
           formulario_id?: string | null
-          funcao?: string
           id?: string
-          nome_completo?: string
+          inspecionado_cpf?: string
+          inspecionado_funcao?: string
+          inspecionado_nome?: string
           observacoes_epi_altura?: string | null
           observacoes_epi_basico?: string | null
           observacoes_epi_eletrico?: string | null
           observacoes_gerais?: string | null
           observacoes_inspecao?: string | null
           regional?: string
+          reforco_regras_ouro?: boolean | null
+          responsavel_cpf?: string
+          responsavel_funcao?: string
+          responsavel_nome?: string
           responsavel_regional?: string
+          trabalho_altura?: boolean | null
           trabalho_eletrico?: boolean | null
-          treinamento_adequado?: boolean
+          treinamento_adequado?: boolean | null
           updated_at?: string | null
         }
         Relationships: [

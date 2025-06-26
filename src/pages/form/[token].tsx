@@ -3,12 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase/client';
 import {
-    getTimeUntilExpiration,
-    sanitizeInput,
-    updateFormularioStatus,
-    validateFormToken,
-    validateTokenFormat,
-    type TokenValidationResult
+  updateFormularioStatus,
+  validateFormToken,
+  validateTokenFormat,
+  type TokenValidationResult
 } from '@/lib/utils/validation';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -89,11 +87,8 @@ export default function FormPage() {
       // Usar a nova função de validação
       const validationResult = await validateFormToken(token);
 
-      // Calcular informações de tempo se o formulário existir
+      // Funcionalidade de tempo/expiração removida
       let timeInfo = null;
-      if (validationResult.formulario) {
-        timeInfo = getTimeUntilExpiration(validationResult.formulario);
-      }
 
       // Se o formulário já foi respondido, buscar informações da resposta
       let respostaInfo = null;
@@ -128,38 +123,24 @@ export default function FormPage() {
 
   const fetchRespostaInfo = async (formularioId: string) => {
     try {
-      // Buscar a resposta mais recente (caso haja múltiplas)
       const { data, error } = await supabase
         .from('respostas')
-        .select('nome_completo, created_at')
+        .select('inspecionado_nome, data_resposta, created_at')
         .eq('formulario_id', formularioId)
-        .order('created_at', { ascending: false })
-        .limit(1)
         .single();
 
       if (error) {
-        console.error('Erro ao buscar informações da resposta:', error);
+        console.log('ℹ️ Nenhuma resposta encontrada ainda:', error.message);
         return null;
       }
 
-      // Buscar também a data de resposta do formulário
-      const { data: formularioData, error: formularioError } = await supabase
-        .from('formularios')
-        .select('data_resposta')
-        .eq('id', formularioId)
-        .single();
-
-      if (formularioError) {
-        console.error('Erro ao buscar data de resposta:', formularioError);
-      }
-
       return {
-        nome_completo: data.nome_completo,
-        data_resposta: formularioData?.data_resposta || data.created_at,
+        nome_completo: data.inspecionado_nome,
+        data_resposta: data.data_resposta,
         created_at: data.created_at
       };
     } catch (error) {
-      console.error('Erro ao buscar informações da resposta:', error);
+      console.error('Erro ao buscar resposta:', error);
       return null;
     }
   };
@@ -174,16 +155,30 @@ export default function FormPage() {
 
       console.log('📋 Dados recebidos do formulário:', formData);
 
-      // Sanitizar dados de texto antes do envio
+      // Sanitizar dados - converter undefined para null
       const sanitizedFormData = {
         ...formData,
-        nome_completo: sanitizeInput(formData.nome_completo),
-        funcao: sanitizeInput(formData.funcao),
-        observacoes_epi_basico: formData.observacoes_epi_basico ? sanitizeInput(formData.observacoes_epi_basico) : null,
-        observacoes_epi_altura: formData.observacoes_epi_altura ? sanitizeInput(formData.observacoes_epi_altura) : null,
-        observacoes_epi_eletrico: formData.observacoes_epi_eletrico ? sanitizeInput(formData.observacoes_epi_eletrico) : null,
-        observacoes_inspecao: formData.observacoes_inspecao ? sanitizeInput(formData.observacoes_inspecao) : null,
-        observacoes_gerais: formData.observacoes_gerais ? sanitizeInput(formData.observacoes_gerais) : null,
+        // Converter campos undefined para null para o banco de dados
+        epi_capacete: formData.epi_capacete === undefined ? null : formData.epi_capacete,
+        epi_oculos: formData.epi_oculos === undefined ? null : formData.epi_oculos,
+        epi_protetor_auricular: formData.epi_protetor_auricular === undefined ? null : formData.epi_protetor_auricular,
+        epi_vestimenta: formData.epi_vestimenta === undefined ? null : formData.epi_vestimenta,
+        epi_luvas: formData.epi_luvas === undefined ? null : formData.epi_luvas,
+        epi_calcado: formData.epi_calcado === undefined ? null : formData.epi_calcado,
+        ferramental: formData.ferramental === undefined ? null : formData.ferramental,
+        corda_icamento: formData.corda_icamento === undefined ? null : formData.corda_icamento,
+        trabalho_altura: formData.trabalho_altura === undefined ? null : formData.trabalho_altura,
+        epi_cinto_seguranca: formData.epi_cinto_seguranca === undefined ? null : formData.epi_cinto_seguranca,
+        epi_talabarte: formData.epi_talabarte === undefined ? null : formData.epi_talabarte,
+        epi_capacete_jugular: formData.epi_capacete_jugular === undefined ? null : formData.epi_capacete_jugular,
+        trabalho_eletrico: formData.trabalho_eletrico === undefined ? null : formData.trabalho_eletrico,
+        epi_luvas_isolantes: formData.epi_luvas_isolantes === undefined ? null : formData.epi_luvas_isolantes,
+        epi_calcado_isolante: formData.epi_calcado_isolante === undefined ? null : formData.epi_calcado_isolante,
+        epi_capacete_classe_b: formData.epi_capacete_classe_b === undefined ? null : formData.epi_capacete_classe_b,
+        equipamentos_integros: formData.equipamentos_integros === undefined ? null : formData.equipamentos_integros,
+        treinamento_adequado: formData.treinamento_adequado === undefined ? null : formData.treinamento_adequado,
+        certificados_validos: formData.certificados_validos === undefined ? null : formData.certificados_validos,
+        reforco_regras_ouro: formData.reforco_regras_ouro === undefined ? null : formData.reforco_regras_ouro,
       };
 
       console.log('🧹 Dados sanitizados:', sanitizedFormData);
@@ -211,10 +206,17 @@ export default function FormPage() {
         .insert({
           formulario_id: formulario.id,
           empresa: formulario.empresa,
-          nome_completo: sanitizedFormData.nome_completo,
-          cpf: sanitizedFormData.cpf,
-          funcao: sanitizedFormData.funcao,
-          regional: sanitizedFormData.regional,
+
+          // Dados do responsável pela inspeção (técnico/engenheiro de segurança)
+          responsavel_nome: sanitizedFormData.responsavel_nome,
+          responsavel_cpf: sanitizedFormData.responsavel_cpf,
+          responsavel_funcao: sanitizedFormData.responsavel_funcao,
+
+          // Dados da pessoa inspecionada
+          inspecionado_nome: sanitizedFormData.inspecionado_nome,
+          inspecionado_cpf: sanitizedFormData.inspecionado_cpf,
+          inspecionado_funcao: sanitizedFormData.inspecionado_funcao,
+          regional: sanitizedFormData.regional || '',
 
           // EPI Básico (converter null para false para campos obrigatórios)
           epi_capacete: sanitizedFormData.epi_capacete ?? false,
@@ -225,7 +227,12 @@ export default function FormPage() {
           epi_calcado: sanitizedFormData.epi_calcado ?? false,
           observacoes_epi_basico: sanitizedFormData.observacoes_epi_basico,
 
-          // EPI Altura (campos opcionais podem ser null)
+          // Ferramental e Equipamentos
+          ferramental: sanitizedFormData.ferramental,
+          corda_icamento: sanitizedFormData.corda_icamento,
+
+          // EPI Altura (converter null para false para campos obrigatórios se houver trabalho em altura)
+          trabalho_altura: sanitizedFormData.trabalho_altura,
           epi_cinto_seguranca: sanitizedFormData.epi_cinto_seguranca,
           epi_talabarte: sanitizedFormData.epi_talabarte,
           epi_capacete_jugular: sanitizedFormData.epi_capacete_jugular,
@@ -238,15 +245,18 @@ export default function FormPage() {
           epi_capacete_classe_b: sanitizedFormData.epi_capacete_classe_b,
           observacoes_epi_eletrico: sanitizedFormData.observacoes_epi_eletrico,
 
-          // Inspeção Geral (converter null para false para campos obrigatórios)
-          equipamentos_integros: sanitizedFormData.equipamentos_integros ?? false,
-          treinamento_adequado: sanitizedFormData.treinamento_adequado ?? false,
-          certificados_validos: sanitizedFormData.certificados_validos ?? false,
+          // Inspeção Geral
+          equipamentos_integros: sanitizedFormData.equipamentos_integros,
+          treinamento_adequado: sanitizedFormData.treinamento_adequado,
+          certificados_validos: sanitizedFormData.certificados_validos,
+          reforco_regras_ouro: sanitizedFormData.reforco_regras_ouro,
           observacoes_inspecao: sanitizedFormData.observacoes_inspecao,
 
+          // Declaração de Responsabilidade
+          declaracao_responsabilidade: sanitizedFormData.declaracao_responsabilidade,
+
           // Conclusão
-          responsavel_regional: formulario.criado_por || 'Sistema',
-          observacoes_gerais: sanitizedFormData.observacoes_gerais
+          responsavel_regional: formulario.ufsigla || 'Sistema',
         })
         .select();
 
@@ -413,9 +423,7 @@ export default function FormPage() {
                   <p><strong>Empresa:</strong> {validationResult.formulario.empresa}</p>
                   <p><strong>Regional:</strong> {validationResult.formulario.regional}</p>
                   <p><strong>Criado em:</strong> {formatDate(validationResult.formulario.created_at || '')}</p>
-                  {validationResult.formulario.data_expiracao && (
-                    <p><strong>Expirou em:</strong> {formatDate(validationResult.formulario.data_expiracao)}</p>
-                  )}
+                          {/* Funcionalidade de expiração removida */}
                 </div>
               )}
 

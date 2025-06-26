@@ -1,8 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Tables } from '@/lib/supabase/database.types';
-import { useState } from 'react';
-import { Conclusao } from './sections/Conclusao';
+import { useEffect, useState } from 'react';
+import { DadosInspecionado } from './sections/DadosInspecionado';
 import { EpiAltura } from './sections/EpiAltura';
 import { EpiBasico } from './sections/EpiBasico';
 import { EpiEletrico } from './sections/EpiEletrico';
@@ -12,42 +12,53 @@ import { InspecaoGeral } from './sections/InspecaoGeral';
 type Formulario = Tables<'formularios'>;
 
 export interface FormData {
-  // Identificação
-  nome_completo: string;
-  cpf: string;
-  funcao: string;
-  regional: string;
+  // Identificação do Responsável pela Inspeção (Técnico/Engenheiro de Segurança)
+  responsavel_nome: string;
+  responsavel_cpf: string;
+  responsavel_funcao: string;
+
+  // Identificação da Pessoa Inspecionada
+  inspecionado_nome: string;
+  inspecionado_cpf: string;
+  inspecionado_funcao: string;
+  regional: string; // Não obrigatório mais
 
   // EPI Básico
-  epi_capacete: boolean | null;
-  epi_oculos: boolean | null;
-  epi_protetor_auricular: boolean | null;
-  epi_vestimenta: boolean | null; // máscara/vestimenta
-  epi_luvas: boolean | null;
-  epi_calcado: boolean | null;
+  epi_capacete: boolean | null | undefined;
+  epi_oculos: boolean | null | undefined;
+  epi_protetor_auricular: boolean | null | undefined;
+  epi_vestimenta: boolean | null | undefined; // máscara/vestimenta
+  epi_luvas: boolean | null | undefined;
+  epi_calcado: boolean | null | undefined;
   observacoes_epi_basico: string;
 
+  // Ferramental e Equipamentos
+  ferramental: boolean | null | undefined;
+  corda_icamento: boolean | null | undefined;
+
   // EPI Altura
-  epi_cinto_seguranca: boolean | null;
-  epi_talabarte: boolean | null;
-  epi_capacete_jugular: boolean | null;
+  trabalho_altura: boolean | null | undefined;
+  epi_cinto_seguranca: boolean | null | undefined;
+  epi_talabarte: boolean | null | undefined;
+  epi_capacete_jugular: boolean | null | undefined;
   observacoes_epi_altura: string;
 
   // EPI Elétrico
-  trabalho_eletrico: boolean | null;
-  epi_luvas_isolantes: boolean | null;
-  epi_calcado_isolante: boolean | null;
-  epi_capacete_classe_b: boolean | null; // detector de tensão -> capacete classe B
+  trabalho_eletrico: boolean | null | undefined;
+  epi_luvas_isolantes: boolean | null | undefined;
+  epi_calcado_isolante: boolean | null | undefined;
+  epi_capacete_classe_b: boolean | null | undefined; // detector de tensão -> capacete classe B
   observacoes_epi_eletrico: string;
 
   // Inspeção Geral
-  equipamentos_integros: boolean | null;
-  treinamento_adequado: boolean | null;
-  certificados_validos: boolean | null;
+  equipamentos_integros: boolean | null | undefined;
+  treinamento_adequado: boolean | null | undefined;
+  certificados_validos: boolean | null | undefined;
+  reforco_regras_ouro: boolean | null | undefined;
   observacoes_inspecao: string;
 
-  // Conclusão
-  observacoes_gerais: string;
+  // Declaração de Responsabilidade
+  declaracao_responsabilidade: boolean;
 }
 
 interface FormContainerProps {
@@ -56,56 +67,67 @@ interface FormContainerProps {
   onCancel: () => void;
 }
 
-type FormSection = 'identificacao' | 'epi_basico' | 'epi_altura' | 'epi_eletrico' | 'inspecao_geral' | 'conclusao';
+type FormSection = 'identificacao' | 'dados_inspecionado' | 'epi_basico' | 'epi_altura' | 'epi_eletrico' | 'inspecao_geral';
 
 const sectionTitles: Record<FormSection, string> = {
-  identificacao: '👤 Identificação',
+  identificacao: '👤 Dados do Técnico/Engenheiro',
+  dados_inspecionado: '🔍 Dados da Pessoa Inspecionada',
   epi_basico: '🦺 EPI Básico',
   epi_altura: '🪜 EPI para Trabalho em Altura',
   epi_eletrico: '⚡ EPI para Trabalhos Elétricos',
-  inspecao_geral: '🔍 Inspeção Geral',
-  conclusao: '✅ Conclusão'
+  inspecao_geral: '🔍 Inspeção Geral'
 };
 
 export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerProps) {
   const [currentSection, setCurrentSection] = useState<FormSection>('identificacao');
   const [formData, setFormData] = useState<FormData>({
-    // Identificação
-    nome_completo: '',
-    cpf: '',
-    funcao: '',
+    // Identificação do Responsável pela Inspeção (Técnico/Engenheiro de Segurança)
+    responsavel_nome: '',
+    responsavel_cpf: '',
+    responsavel_funcao: '',
+
+    // Identificação da Pessoa Inspecionada
+    inspecionado_nome: '',
+    inspecionado_cpf: '',
+    inspecionado_funcao: '',
     regional: formulario.regional,
 
     // EPI Básico
-    epi_capacete: null,
-    epi_oculos: null,
-    epi_protetor_auricular: null,
-    epi_vestimenta: null,
-    epi_luvas: null,
-    epi_calcado: null,
+    epi_capacete: undefined,
+    epi_oculos: undefined,
+    epi_protetor_auricular: undefined,
+    epi_vestimenta: undefined,
+    epi_luvas: undefined,
+    epi_calcado: undefined,
     observacoes_epi_basico: '',
 
+    // Ferramental e Equipamentos
+    ferramental: undefined,
+    corda_icamento: undefined,
+
     // EPI Altura
-    epi_cinto_seguranca: null,
-    epi_talabarte: null,
-    epi_capacete_jugular: null,
+    trabalho_altura: undefined,
+    epi_cinto_seguranca: undefined,
+    epi_talabarte: undefined,
+    epi_capacete_jugular: undefined,
     observacoes_epi_altura: '',
 
     // EPI Elétrico
-    trabalho_eletrico: null,
-    epi_luvas_isolantes: null,
-    epi_calcado_isolante: null,
-    epi_capacete_classe_b: null,
+    trabalho_eletrico: undefined,
+    epi_luvas_isolantes: undefined,
+    epi_calcado_isolante: undefined,
+    epi_capacete_classe_b: undefined,
     observacoes_epi_eletrico: '',
 
     // Inspeção Geral
-    equipamentos_integros: null,
-    treinamento_adequado: null,
-    certificados_validos: null,
+    equipamentos_integros: undefined,
+    treinamento_adequado: undefined,
+    certificados_validos: undefined,
+    reforco_regras_ouro: undefined,
     observacoes_inspecao: '',
 
-    // Conclusão
-    observacoes_gerais: ''
+    // Declaração de Responsabilidade
+    declaracao_responsabilidade: false,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -114,11 +136,11 @@ export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerP
   // Ordem das seções
   const sectionOrder: FormSection[] = [
     'identificacao',
+    'dados_inspecionado',
     'epi_basico',
     'epi_altura',
     'epi_eletrico',
-    'inspecao_geral',
-    'conclusao'
+    'inspecao_geral'
   ];
 
   const currentSectionIndex = sectionOrder.indexOf(currentSection);
@@ -131,10 +153,16 @@ export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerP
 
     switch (section) {
       case 'identificacao':
-        if (!formData.nome_completo.trim()) errors.push('Nome completo é obrigatório');
-        if (!formData.cpf.trim()) errors.push('CPF é obrigatório');
-        if (!formData.funcao.trim()) errors.push('Função é obrigatória');
-        if (!formData.regional.trim()) errors.push('Regional é obrigatória');
+        if (!formData.responsavel_nome.trim()) errors.push('Nome do técnico é obrigatório');
+        if (!formData.responsavel_cpf.trim()) errors.push('CPF do técnico é obrigatório');
+        if (!formData.responsavel_funcao.trim()) errors.push('Função do técnico é obrigatória');
+        break;
+
+      case 'dados_inspecionado':
+        if (!formData.inspecionado_nome.trim()) errors.push('Nome da pessoa inspecionada é obrigatório');
+        if (!formData.inspecionado_cpf.trim()) errors.push('CPF da pessoa inspecionada é obrigatório');
+        if (!formData.inspecionado_funcao.trim()) errors.push('Função da pessoa inspecionada é obrigatória');
+        // Regional não é mais obrigatória
         break;
 
       case 'epi_basico':
@@ -142,42 +170,54 @@ export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerP
           'epi_capacete', 'epi_oculos', 'epi_protetor_auricular',
           'epi_vestimenta', 'epi_luvas', 'epi_calcado'
         ];
-        const hasNullEpiBasico = epiBasicoFields.some(field =>
-          formData[field as keyof FormData] === null
+        const equipmentFields = ['ferramental', 'corda_icamento'];
+
+        const hasUndefinedEpiBasico = epiBasicoFields.some(field =>
+          formData[field as keyof FormData] === undefined
         );
-        if (hasNullEpiBasico) errors.push('Todos os itens de EPI básico devem ser verificados');
+        const hasUndefinedEquipment = equipmentFields.some(field =>
+          formData[field as keyof FormData] === undefined
+        );
+
+        if (hasUndefinedEpiBasico) errors.push('Todos os itens de EPI básico devem ser verificados (pode usar "Não Aplicável")');
+        if (hasUndefinedEquipment) errors.push('Ferramental e corda de içamento devem ser verificados');
         break;
 
       case 'epi_altura':
-        const epiAlturaFields = ['epi_cinto_seguranca', 'epi_talabarte', 'epi_capacete_jugular'];
-        const hasNullEpiAltura = epiAlturaFields.some(field =>
-          formData[field as keyof FormData] === null
-        );
-        if (hasNullEpiAltura) errors.push('Todos os itens de EPI para altura devem ser verificados');
+        if (formData.trabalho_altura === undefined) {
+          errors.push('Deve indicar se realizará trabalho em altura');
+        } else if (formData.trabalho_altura) {
+          const epiAlturaFields = ['epi_cinto_seguranca', 'epi_talabarte', 'epi_capacete_jugular'];
+          const hasUndefinedEpiAltura = epiAlturaFields.some(field =>
+            formData[field as keyof FormData] === undefined
+          );
+          if (hasUndefinedEpiAltura) errors.push('Todos os itens de EPI para altura devem ser verificados');
+        }
         break;
 
       case 'epi_eletrico':
-        if (formData.trabalho_eletrico === null) {
+        if (formData.trabalho_eletrico === undefined) {
           errors.push('Deve indicar se realizará trabalho elétrico');
         } else if (formData.trabalho_eletrico) {
           const epiEletricoFields = ['epi_luvas_isolantes', 'epi_calcado_isolante', 'epi_capacete_classe_b'];
-          const hasNullEpiEletrico = epiEletricoFields.some(field =>
-            formData[field as keyof FormData] === null
+          const hasUndefinedEpiEletrico = epiEletricoFields.some(field =>
+            formData[field as keyof FormData] === undefined
           );
-          if (hasNullEpiEletrico) errors.push('Todos os itens de EPI elétrico devem ser verificados');
+          if (hasUndefinedEpiEletrico) errors.push('Todos os itens de EPI elétrico devem ser verificados');
         }
         break;
 
       case 'inspecao_geral':
-        const inspecaoFields = ['equipamentos_integros', 'treinamento_adequado', 'certificados_validos'];
-        const hasNullInspecao = inspecaoFields.some(field =>
-          formData[field as keyof FormData] === null
+        const inspecaoFields = ['equipamentos_integros', 'treinamento_adequado', 'certificados_validos', 'reforco_regras_ouro'];
+        const hasUndefinedInspecao = inspecaoFields.some(field =>
+          formData[field as keyof FormData] === undefined
         );
-        if (hasNullInspecao) errors.push('Todos os itens de inspeção devem ser verificados');
-        break;
+        if (hasUndefinedInspecao) errors.push('Todos os itens de inspeção devem ser verificados');
 
-      case 'conclusao':
-        // Não há validações obrigatórias para a seção de conclusão
+        // Validar declaração de responsabilidade
+        if (!formData.declaracao_responsabilidade) {
+          errors.push('É obrigatório concordar com a declaração de responsabilidade');
+        }
         break;
     }
 
@@ -256,6 +296,8 @@ export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerP
     switch (currentSection) {
       case 'identificacao':
         return <Identificacao {...sectionProps} />;
+      case 'dados_inspecionado':
+        return <DadosInspecionado {...sectionProps} />;
       case 'epi_basico':
         return <EpiBasico {...sectionProps} />;
       case 'epi_altura':
@@ -264,8 +306,6 @@ export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerP
         return <EpiEletrico {...sectionProps} />;
       case 'inspecao_geral':
         return <InspecaoGeral {...sectionProps} />;
-      case 'conclusao':
-        return <Conclusao {...sectionProps} />;
       default:
         return null;
     }
@@ -275,30 +315,39 @@ export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerP
   const getSectionProgress = (section: FormSection) => {
     switch (section) {
       case 'epi_basico': {
-        const epiBasicoFields = ['epi_capacete', 'epi_oculos', 'epi_protetor_auricular', 'epi_vestimenta', 'epi_luvas', 'epi_calcado'];
-        const completed = epiBasicoFields.filter(field => formData[field as keyof FormData] !== null).length;
+        const epiBasicoFields = ['epi_capacete', 'epi_oculos', 'epi_protetor_auricular', 'epi_vestimenta', 'epi_luvas', 'epi_calcado', 'ferramental', 'corda_icamento'];
+        const completed = epiBasicoFields.filter(field => formData[field as keyof FormData] !== undefined).length;
         return { completed, total: epiBasicoFields.length };
       }
       case 'epi_altura': {
-        const epiAlturaFields = ['epi_cinto_seguranca', 'epi_talabarte', 'epi_capacete_jugular'];
-        const completed = epiAlturaFields.filter(field => formData[field as keyof FormData] !== null).length;
-        return { completed, total: epiAlturaFields.length };
+        if (formData.trabalho_altura === false) return { completed: 1, total: 1 }; // Só precisa responder se fará trabalho em altura
+        if (formData.trabalho_altura === true) {
+          const epiAlturaFields = ['epi_cinto_seguranca', 'epi_talabarte', 'epi_capacete_jugular'];
+          const completed = epiAlturaFields.filter(field => formData[field as keyof FormData] !== undefined).length + 1; // +1 pelo trabalho_altura
+          return { completed, total: epiAlturaFields.length + 1 };
+        }
+        return { completed: 0, total: 1 }; // Ainda não respondeu se fará trabalho em altura
       }
       case 'epi_eletrico': {
         if (!formData.trabalho_eletrico) return { completed: 1, total: 1 }; // Só precisa responder se faz trabalho elétrico
         const epiEletricoFields = ['epi_luvas_isolantes', 'epi_calcado_isolante', 'epi_capacete_classe_b'];
-        const completed = epiEletricoFields.filter(field => formData[field as keyof FormData] !== null).length + 1; // +1 pelo trabalho_eletrico
+        const completed = epiEletricoFields.filter(field => formData[field as keyof FormData] !== undefined).length + 1; // +1 pelo trabalho_eletrico
         return { completed, total: epiEletricoFields.length + 1 };
       }
       case 'inspecao_geral': {
-        const inspecaoFields = ['equipamentos_integros', 'treinamento_adequado', 'certificados_validos'];
-        const completed = inspecaoFields.filter(field => formData[field as keyof FormData] !== null).length;
-        return { completed, total: inspecaoFields.length };
+        const inspecaoFields = ['equipamentos_integros', 'treinamento_adequado', 'certificados_validos', 'reforco_regras_ouro'];
+        const completed = inspecaoFields.filter(field => formData[field as keyof FormData] !== undefined).length;
+        const declaracaoCompleta = formData.declaracao_responsabilidade ? 1 : 0;
+        return { completed: completed + declaracaoCompleta, total: inspecaoFields.length + 1 }; // +1 para declaração
       }
       default:
         return { completed: 1, total: 1 }; // Seções que não têm progresso específico
     }
   };
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentSection]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -338,7 +387,7 @@ export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerP
                   style={{ width: `${((currentSectionIndex + 1) / sectionOrder.length) * 100}%` }}
                 />
               </div>
-                            <div className="flex justify-between text-xs">
+              <div className="flex justify-between text-xs">
                 {sectionOrder.map((section, index) => {
                   const isActive = index === currentSectionIndex;
                   const isCompleted = index < currentSectionIndex;
@@ -357,12 +406,12 @@ export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerP
                         {isActive && '👤'} {isCompleted && '✅'} {hasErrors && '⚠️'}
                       </div>
                       <div className="text-xs mt-0.5">
-                        {section === 'identificacao' && 'ID'}
+                        {section === 'identificacao' && 'Técnico'}
+                        {section === 'dados_inspecionado' && 'Inspecionado'}
                         {section === 'epi_basico' && 'Básico'}
                         {section === 'epi_altura' && 'Altura'}
                         {section === 'epi_eletrico' && 'Elétrico'}
                         {section === 'inspecao_geral' && 'Inspeção'}
-                        {section === 'conclusao' && 'Conclusão'}
                       </div>
                     </span>
                   );
@@ -370,7 +419,7 @@ export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerP
               </div>
             </div>
 
-                        {/* Progresso da Seção Atual (se aplicável) */}
+            {/* Progresso da Seção Atual (se aplicável) */}
             {['epi_basico', 'epi_altura', 'epi_eletrico', 'inspecao_geral'].includes(currentSection) && (
               <div className="border-t border-blue-300 pt-2">
                 <div className="flex items-center justify-between mb-1">
@@ -381,10 +430,7 @@ export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerP
                     {currentSection === 'inspecao_geral' && '🔍 Inspeção Geral'}
                   </h4>
                   <span className="text-xs text-blue-700">
-                    {(() => {
-                      const progress = getSectionProgress(currentSection);
-                      return `${progress.completed}/${progress.total}`;
-                    })()}
+                    {getSectionProgress(currentSection).completed}/{getSectionProgress(currentSection).total}
                   </span>
                 </div>
                 <div className="w-full bg-blue-200 rounded-full h-1">
@@ -411,11 +457,11 @@ export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerP
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               {currentSection === 'identificacao' && '👤'}
+              {currentSection === 'dados_inspecionado' && '🔍'}
               {currentSection === 'epi_basico' && '🦺'}
               {currentSection === 'epi_altura' && '🪜'}
               {currentSection === 'epi_eletrico' && '⚡'}
               {currentSection === 'inspecao_geral' && '🔍'}
-              {currentSection === 'conclusao' && '✅'}
               {sectionTitles[currentSection]}
             </CardTitle>
           </CardHeader>
@@ -446,20 +492,17 @@ export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerP
                   Cancelar
                 </Button>
 
-                {isLastSection ? (
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={isSubmitting}
-                    className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
-                  >
-                    {isSubmitting ? '⏳ Enviando...' : '✅ Enviar Formulário'}
+                {currentSectionIndex < sectionOrder.length - 1 ? (
+                  <Button onClick={goToNextSection} className="px-6">
+                    Próxima Seção →
                   </Button>
                 ) : (
                   <Button
-                    onClick={goToNextSection}
-                    className="flex items-center gap-2"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="px-6 bg-green-600 hover:bg-green-700"
                   >
-                    Próximo →
+                    {isSubmitting ? '⏳ Enviando...' : '✅ Finalizar Inspeção'}
                   </Button>
                 )}
               </div>

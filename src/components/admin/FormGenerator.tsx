@@ -19,8 +19,7 @@ export function FormGenerator({ onFormGenerated }: FormGeneratorProps) {
   // Campos do formulário
   const [empresa, setEmpresa] = useState('');
   const [regional, setRegional] = useState('');
-  const [dataExpiracao, setDataExpiracao] = useState('');
-  const [criadoPor, setCriadoPor] = useState('');
+  const [ufsigla, setUfsigla] = useState('');
 
   const empresas = [
     'Icomon',
@@ -31,16 +30,19 @@ export function FormGenerator({ onFormGenerated }: FormGeneratorProps) {
   ];
 
   const regionais = [
-    'Regional MG',
-    'Regional CO/NO',
-    'Regional RJ/ES'
+    'MG',
+    'CO/NO',
+    'RJ/ES',
+    'SP',
+    'SUL',
+    'NE',
+    'BA/SE'
   ];
 
   const resetForm = () => {
     setEmpresa('');
     setRegional('');
-    setDataExpiracao('');
-    setCriadoPor('');
+    setUfsigla('');
     setGeneratedLink(null);
     setError(null);
     setSuccess(null);
@@ -59,22 +61,16 @@ export function FormGenerator({ onFormGenerated }: FormGeneratorProps) {
       if (!regional) {
         throw new Error('Selecione uma regional');
       }
-      if (!criadoPor) {
-        throw new Error('Informe quem está criando o formulário');
+      if (!ufsigla) {
+        throw new Error('Informe a UFSIGLA');
       }
 
-      // Validar data de expiração se fornecida
-      let dataExpiracaoFormatada = null;
-      if (dataExpiracao) {
-        const dataExp = new Date(dataExpiracao);
-        const agora = new Date();
-
-        if (dataExp <= agora) {
-          throw new Error('Data de expiração deve ser futura');
-        }
-
-        dataExpiracaoFormatada = dataExp.toISOString();
+      // Validar formato da UFSIGLA (máximo 5 caracteres alfanuméricos)
+      if (!/^[A-Za-z0-9]{1,5}$/.test(ufsigla)) {
+        throw new Error('UFSIGLA deve conter apenas letras e números (máximo 5 caracteres)');
       }
+
+      // Não há mais validação de data de expiração
 
             // Gerar token único
       const token = generateFormToken();
@@ -86,8 +82,7 @@ export function FormGenerator({ onFormGenerated }: FormGeneratorProps) {
           token,
           empresa,
           regional,
-          criado_por: criadoPor,
-          data_expiracao: dataExpiracaoFormatada,
+          ufsigla: ufsigla.toUpperCase(),
           status: 'pendente',
           data_criacao: new Date().toISOString(),
         })
@@ -178,34 +173,25 @@ export function FormGenerator({ onFormGenerated }: FormGeneratorProps) {
             </select>
           </div>
 
-          {/* Criado Por */}
+          {/* UFSIGLA */}
           <div className="space-y-2">
-            <Label htmlFor="criadoPor">Criado por *</Label>
+            <Label htmlFor="ufsigla">Site VIVO:*</Label>
             <Input
-              id="criadoPor"
+              id="ufsigla"
               type="text"
-              placeholder="Nome ou email de quem está criando"
-              value={criadoPor}
-              onChange={(e) => setCriadoPor(e.target.value)}
+              placeholder="Código da localidade (ex: SPVIV, MGVA2)"
+              value={ufsigla}
+              onChange={(e) => setUfsigla(e.target.value.toUpperCase())}
               disabled={isGenerating}
-            />
-          </div>
-
-          {/* Data de Expiração */}
-          <div className="space-y-2">
-            <Label htmlFor="dataExpiracao">Data de Expiração (opcional)</Label>
-            <Input
-              id="dataExpiracao"
-              type="datetime-local"
-              value={dataExpiracao}
-              onChange={(e) => setDataExpiracao(e.target.value)}
-              disabled={isGenerating}
-              min={new Date().toISOString().slice(0, 16)}
+              maxLength={5}
+              pattern="[A-Za-z0-9]{1,5}"
             />
             <p className="text-xs text-gray-500">
-              Se não informada, o link não expira automaticamente
+              Máximo 5 caracteres alfanuméricos (letras e números)
             </p>
           </div>
+
+          {/* Campo de Data de Expiração removido - não utilizamos mais esta funcionalidade */}
 
           {/* Mensagens de erro e sucesso */}
           {error && (
@@ -277,9 +263,7 @@ export function FormGenerator({ onFormGenerated }: FormGeneratorProps) {
                 <li>• Envie este link para o técnico via WhatsApp ou email</li>
                 <li>• O técnico pode acessar diretamente sem login</li>
                 <li>• O formulário será salvo automaticamente ao ser enviado</li>
-                {dataExpiracao && (
-                  <li>• ⏰ Link expira em: {new Date(dataExpiracao).toLocaleString('pt-BR')}</li>
-                )}
+                <li>• ✅ Link não expira automaticamente</li>
               </ul>
             </div>
           </CardContent>

@@ -25,7 +25,6 @@ export function AdminLayout({ children, title, subtitle, onBack, activePage, onP
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'forms', label: 'Formulários', icon: '📋' },
     { id: 'generator', label: 'Gerar Link', icon: '🔗' },
-    { id: 'responses', label: 'Respostas', icon: '📄' },
   ];
 
   return (

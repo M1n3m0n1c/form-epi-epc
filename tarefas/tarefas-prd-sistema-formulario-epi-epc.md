@@ -117,17 +117,17 @@
   - [x] 4.13.2 Integrar filtro na função de filtragem existente
   - [x] 4.13.3 Adicionar limpeza do filtro na função limparFiltros
 
-- [ ] 5.0 Sistema de Upload e Gerenciamento de Fotos
-  - [ ] 5.1 Desenvolver componente PhotoUpload para captura via câmera
-  - [ ] 5.2 Implementar upload de fotos da galeria do dispositivo
-  - [ ] 5.3 Criar sistema de compressão automática de fotos (máximo 2MB)
-  - [ ] 5.4 Implementar preview das fotos antes do upload
-  - [ ] 5.5 Desenvolver organização automática de fotos por seção
-  - [ ] 5.6 Criar estrutura de armazenamento `/formularios/{formulario_id}/{secao}/`
-  - [ ] 5.7 Implementar associação de metadados das fotos com resposta e seção
-  - [ ] 5.8 Adicionar validação de tipos de arquivo e tamanho
-  - [ ] 5.9 Implementar feedback visual para upload em progresso
-  - [ ] 5.10 Criar funcionalidade de remoção de fotos antes do envio
+- [x] 5.0 Sistema de Upload e Gerenciamento de Fotos
+  - [x] 5.1 Desenvolver componente PhotoUpload para captura via câmera
+  - [x] 5.2 Implementar upload de fotos da galeria do dispositivo
+  - [x] 5.3 Criar sistema de compressão automática de fotos (máximo 2MB)
+  - [x] 5.4 Implementar preview das fotos antes do upload
+  - [x] 5.5 Desenvolver organização automática de fotos por seção
+  - [x] 5.6 Criar estrutura de armazenamento `/formularios/{formulario_id}/{secao}/`
+  - [x] 5.7 Implementar associação de metadados das fotos com resposta e seção
+  - [x] 5.8 Adicionar validação de tipos de arquivo e tamanho
+  - [x] 5.9 Implementar feedback visual para upload em progresso
+  - [x] 5.10 Criar funcionalidade de remoção de fotos antes do envio
 
 - [ ] 6.0 Sistema de Geração de Relatórios e Funcionalidades Finais
   - [ ] 6.1 Implementar geração de relatórios em PDF com fotos integradas

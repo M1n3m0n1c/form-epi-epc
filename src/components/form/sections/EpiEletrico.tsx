@@ -48,9 +48,9 @@ export function EpiEletrico({ data, onChange, errors }: EpiEletricoProps) {
     if (!value) {
       onChange({
         trabalho_eletrico: value,
-        epi_luvas_isolantes: null,
-        epi_calcado_isolante: null,
-        epi_capacete_classe_b: null,
+        epi_luvas_isolantes: undefined,
+        epi_calcado_isolante: undefined,
+        epi_capacete_classe_b: undefined,
         observacoes_epi_eletrico: ''
       });
     }
@@ -72,7 +72,7 @@ export function EpiEletrico({ data, onChange, errors }: EpiEletricoProps) {
     if (data.trabalho_eletrico === true) {
       const totalItems = epiEletricoItems.length;
       const completedItems = epiEletricoItems.filter(item =>
-        data[item.key] !== null
+        data[item.key] !== undefined
       ).length;
 
       return { completed: completedItems, total: totalItems };
@@ -170,7 +170,7 @@ export function EpiEletrico({ data, onChange, errors }: EpiEletricoProps) {
           {/* Lista de EPIs Elétricos */}
           <div className="space-y-4">
             {epiEletricoItems.map((item) => {
-              const currentValue = data[item.key] as boolean | null;
+              const currentValue = data[item.key] as boolean | null | undefined;
 
               return (
                 <div key={item.key} className="border rounded-lg p-4">
@@ -228,11 +228,11 @@ export function EpiEletrico({ data, onChange, errors }: EpiEletricoProps) {
                           <span className="text-red-600 text-sm">✗</span>
                         </div>
                       )}
-                      {currentValue === null && (
-                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                          <span className="text-gray-400 text-sm">?</span>
-                        </div>
-                      )}
+                                          {currentValue === undefined && (
+                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                        <span className="text-gray-400 text-sm">?</span>
+                      </div>
+                    )}
                     </div>
                   </div>
                 </div>

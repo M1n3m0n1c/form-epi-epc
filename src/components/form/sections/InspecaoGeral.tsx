@@ -36,6 +36,12 @@ const inspecaoItems: InspecaoItem[] = [
     label: 'Certificados Válidos',
     description: 'Todos os equipamentos possuem Certificado de Aprovação (CA) dentro da validade',
     icon: '📋'
+  },
+  {
+    key: 'reforco_regras_ouro',
+    label: 'Reforço Regras de Ouro',
+    description: 'Foi realizado reforço sobre as regras de ouro da Vivo/Vale',
+    icon: '🥇'
   }
 ];
 
@@ -52,7 +58,7 @@ export function InspecaoGeral({ data, onChange, errors }: InspecaoGeralProps) {
   const getCompletionStatus = () => {
     const totalItems = inspecaoItems.length;
     const completedItems = inspecaoItems.filter(item =>
-      data[item.key] !== null
+      data[item.key] !== undefined
     ).length;
 
     return { completed: completedItems, total: totalItems };
@@ -63,23 +69,60 @@ export function InspecaoGeral({ data, onChange, errors }: InspecaoGeralProps) {
 
   // Calcular estatísticas gerais do formulário
   const getFormStatistics = () => {
-    const epiBasicoItems = ['epi_capacete', 'epi_oculos', 'epi_protetor_auricular', 'epi_vestimenta', 'epi_luvas', 'epi_calcado'];
+    // EPI Básico - incluindo os novos campos ferramental e corda_icamento
+    const epiBasicoItems = [
+      'epi_capacete', 'epi_oculos', 'epi_protetor_auricular',
+      'epi_vestimenta', 'epi_luvas', 'epi_calcado',
+      'ferramental', 'corda_icamento'
+    ];
+
+    // EPI Altura - apenas quando há trabalho em altura
     const epiAlturaItems = ['epi_cinto_seguranca', 'epi_talabarte', 'epi_capacete_jugular'];
+
+    // EPI Elétrico - apenas quando há trabalho elétrico
     const epiEletricoItems = ['epi_luvas_isolantes', 'epi_calcado_isolante', 'epi_capacete_classe_b'];
 
-    const epiBasicoAprovados = epiBasicoItems.filter(item => data[item as keyof FormData] === true).length;
-    const epiBasicoTotal = epiBasicoItems.length;
+    // Função para contar aprovados (true ou null/N.A.)
+    const countApproved = (items: string[]) => {
+      return items.filter(item => {
+        const value = data[item as keyof FormData];
+        return value === true || value === null; // true = aprovado, null = N.A. (também conta como aprovado)
+      }).length;
+    };
 
-    const epiAlturaAprovados = epiAlturaItems.filter(item => data[item as keyof FormData] === true).length;
-    const epiAlturaTotal = epiAlturaItems.length;
+    // EPI Básico - sempre conta todos os 8 itens
+    const epiBasicoAprovados = countApproved(epiBasicoItems);
+    const epiBasicoTotal = epiBasicoItems.length; // 8 itens
 
+    // EPI Altura - depende se há trabalho em altura
+    let epiAlturaAprovados = 0;
+    let epiAlturaTotal = 0;
+
+    if (data.trabalho_altura === true) {
+      // Se há trabalho em altura, conta os EPIs específicos
+      epiAlturaAprovados = countApproved(epiAlturaItems);
+      epiAlturaTotal = epiAlturaItems.length; // 3 itens
+    } else if (data.trabalho_altura === false) {
+      // Se não há trabalho em altura, considera todos como N.A. (aprovados)
+      epiAlturaAprovados = epiAlturaItems.length;
+      epiAlturaTotal = epiAlturaItems.length; // 3 itens, todos N.A.
+    }
+    // Se trabalho_altura === undefined, não conta nada ainda
+
+    // EPI Elétrico - depende se há trabalho elétrico
     let epiEletricoAprovados = 0;
     let epiEletricoTotal = 0;
 
     if (data.trabalho_eletrico === true) {
-      epiEletricoAprovados = epiEletricoItems.filter(item => data[item as keyof FormData] === true).length;
-      epiEletricoTotal = epiEletricoItems.length;
+      // Se há trabalho elétrico, conta os EPIs específicos
+      epiEletricoAprovados = countApproved(epiEletricoItems);
+      epiEletricoTotal = epiEletricoItems.length; // 3 itens
+    } else if (data.trabalho_eletrico === false) {
+      // Se não há trabalho elétrico, considera todos como N.A. (aprovados)
+      epiEletricoAprovados = epiEletricoItems.length;
+      epiEletricoTotal = epiEletricoItems.length; // 3 itens, todos N.A.
     }
+    // Se trabalho_eletrico === undefined, não conta nada ainda
 
     const totalAprovados = epiBasicoAprovados + epiAlturaAprovados + epiEletricoAprovados;
     const totalItens = epiBasicoTotal + epiAlturaTotal + epiEletricoTotal;
@@ -138,21 +181,40 @@ export function InspecaoGeral({ data, onChange, errors }: InspecaoGeralProps) {
         <div className="p-4 bg-gray-50 border rounded-lg">
           <h5 className="font-medium text-gray-900 mb-1">🪜 EPI Altura</h5>
           <p className="text-2xl font-bold text-gray-700">
-            {stats.epiAltura.aprovados}/{stats.epiAltura.total}
+            {data.trabalho_altura === false
+              ? `${stats.epiAltura.total}/${stats.epiAltura.total}`
+              : data.trabalho_altura === true
+                ? `${stats.epiAltura.aprovados}/${stats.epiAltura.total}`
+                : 'N/A'
+            }
           </p>
-          <p className="text-xs text-gray-600">Aprovados</p>
+          <p className="text-xs text-gray-600">
+            {data.trabalho_altura === false
+              ? 'Não aplicável'
+              : data.trabalho_altura === true
+                ? 'Aprovados'
+                : 'Aguardando definição'
+            }
+          </p>
         </div>
 
         <div className="p-4 bg-gray-50 border rounded-lg">
           <h5 className="font-medium text-gray-900 mb-1">⚡ EPI Elétrico</h5>
           <p className="text-2xl font-bold text-gray-700">
-            {data.trabalho_eletrico === true
-              ? `${stats.epiEletrico.aprovados}/${stats.epiEletrico.total}`
-              : 'N/A'
+            {data.trabalho_eletrico === false
+              ? `${stats.epiEletrico.total}/${stats.epiEletrico.total}`
+              : data.trabalho_eletrico === true
+                ? `${stats.epiEletrico.aprovados}/${stats.epiEletrico.total}`
+                : 'N/A'
             }
           </p>
           <p className="text-xs text-gray-600">
-            {data.trabalho_eletrico === true ? 'Aprovados' : 'Não aplicável'}
+            {data.trabalho_eletrico === false
+              ? 'Não aplicável'
+              : data.trabalho_eletrico === true
+                ? 'Aprovados'
+                : 'Aguardando definição'
+            }
           </p>
         </div>
 
@@ -172,7 +234,7 @@ export function InspecaoGeral({ data, onChange, errors }: InspecaoGeralProps) {
       {/* Lista de verificações finais */}
       <div className="space-y-4">
         {inspecaoItems.map((item) => {
-          const currentValue = data[item.key] as boolean | null;
+          const currentValue = data[item.key] as boolean | null | undefined;
 
           return (
             <div key={item.key} className="border rounded-lg p-4">
@@ -230,7 +292,7 @@ export function InspecaoGeral({ data, onChange, errors }: InspecaoGeralProps) {
                       <span className="text-red-600 text-sm">✗</span>
                     </div>
                   )}
-                  {currentValue === null && (
+                  {currentValue === undefined && (
                     <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
                       <span className="text-gray-400 text-sm">?</span>
                     </div>
@@ -259,6 +321,48 @@ export function InspecaoGeral({ data, onChange, errors }: InspecaoGeralProps) {
           <span>Inclua recomendações e observações gerais da inspeção</span>
           <span>{data.observacoes_inspecao.length}/500</span>
         </div>
+      </div>
+
+      {/* Declaração de Responsabilidade */}
+      <div className="p-6 bg-blue-50 border-2 border-blue-200 rounded-lg">
+        <h4 className="font-bold text-blue-900 mb-4 text-lg">📋 Declaração de Responsabilidade</h4>
+
+        <div className="bg-white p-4 rounded-lg border mb-4">
+          <p className="text-sm text-gray-800 leading-relaxed">
+            <strong>Eu, {data.responsavel_nome || '[Nome do Responsável]'}, CPF {data.responsavel_cpf || '[CPF]'},
+            na função de {data.responsavel_funcao || '[Função]'}</strong>, declaro que:
+          </p>
+
+          <ul className="mt-3 space-y-2 text-sm text-gray-700">
+            <li>• Realizei a inspeção de EPI/EPC de forma criteriosa e responsável</li>
+            <li>• Todas as informações prestadas neste formulário são verdadeiras</li>
+            <li>• Orientei adequadamente o colaborador sobre o uso correto dos equipamentos</li>
+            <li>• Realizei o reforço das regras de ouro da Vivo/Vale conforme necessário</li>
+            <li>• Assumo total responsabilidade pelas informações declaradas</li>
+          </ul>
+        </div>
+
+        <div className="flex items-start gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <input
+            type="checkbox"
+            id="declaracao_responsabilidade"
+            checked={data.declaracao_responsabilidade || false}
+            onChange={(e) => onChange({ declaracao_responsabilidade: e.target.checked })}
+            className="w-5 h-5 text-blue-600 focus:ring-blue-500 border-2 border-gray-300 rounded mt-0.5"
+          />
+          <label htmlFor="declaracao_responsabilidade" className="text-sm font-medium text-gray-900 cursor-pointer">
+            <strong>Concordo com a declaração de responsabilidade acima e confirmo que todas as informações
+            prestadas são verdadeiras e que a inspeção foi realizada de acordo com as normas de segurança.*</strong>
+          </label>
+        </div>
+
+        {!data.declaracao_responsabilidade && (
+          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-800">
+              ⚠️ <strong>Obrigatório:</strong> É necessário concordar com a declaração de responsabilidade para finalizar a inspeção.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Resultado final da inspeção */}

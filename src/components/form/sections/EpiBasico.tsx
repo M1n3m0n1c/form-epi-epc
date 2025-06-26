@@ -16,6 +16,7 @@ interface EpiItem {
   label: string;
   description: string;
   icon: string;
+  allowNA?: boolean; // Permite "Não Aplicável"
 }
 
 const epiBasicoItems: EpiItem[] = [
@@ -23,44 +24,66 @@ const epiBasicoItems: EpiItem[] = [
     key: 'epi_capacete',
     label: 'Capacete de Proteção',
     description: 'Verificar integridade, ajuste e certificação CA',
-    icon: '⛑️'
+    icon: '⛑️',
+    allowNA: true
   },
   {
     key: 'epi_oculos',
     label: 'Óculos de Proteção',
     description: 'Lentes sem riscos, armação íntegra e certificação CA',
-    icon: '🥽'
+    icon: '🥽',
+    allowNA: true
   },
   {
     key: 'epi_protetor_auricular',
     label: 'Protetor Auricular',
     description: 'Tipo plug ou concha, em bom estado e certificação CA',
-    icon: '🎧'
+    icon: '🎧',
+    allowNA: true
   },
   {
     key: 'epi_vestimenta',
     label: 'Máscara/Vestimenta de Proteção',
     description: 'Contra poeiras/vapores, filtros válidos e certificação CA',
-    icon: '😷'
+    icon: '😷',
+    allowNA: true
   },
   {
     key: 'epi_luvas',
     label: 'Luvas de Proteção',
     description: 'Adequadas ao trabalho, sem furos e certificação CA',
-    icon: '🧤'
+    icon: '🧤',
+    allowNA: true
   },
   {
     key: 'epi_calcado',
     label: 'Calçado de Proteção',
     description: 'Biqueira de aço, solado antiderrapante e certificação CA',
-    icon: '👢'
+    icon: '👢',
+    allowNA: true
+  },
+  {
+    key: 'ferramental',
+    label: 'Ferramental',
+    description: 'Em boas condições e em acordo com as NRs aplicáveis',
+    icon: '🔧',
+    allowNA: true
+  },
+  {
+    key: 'corda_icamento',
+    label: 'Corda de Içamento',
+    description: 'Corda suporta carga de trabalho e possui certificado',
+    icon: '🪢',
+    allowNA: true
   }
 ];
 
 export function EpiBasico({ data, onChange, errors }: EpiBasicoProps) {
 
-  const handleEpiChange = (key: keyof FormData, value: boolean) => {
-    onChange({ [key]: value });
+  const handleEpiChange = (key: keyof FormData, value: boolean | 'na') => {
+    // Convertemos 'na' para null para representar "Não Aplicável"
+    const finalValue = value === 'na' ? null : value;
+    onChange({ [key]: finalValue });
   };
 
   const handleObservacoesChange = (value: string) => {
@@ -69,9 +92,13 @@ export function EpiBasico({ data, onChange, errors }: EpiBasicoProps) {
 
   const getCompletionStatus = () => {
     const totalItems = epiBasicoItems.length;
-    const completedItems = epiBasicoItems.filter(item =>
-      data[item.key] !== null
-    ).length;
+    // Um item está completo quando foi "tocado" pelo usuário
+    // Consideramos que o estado inicial (undefined) significa não respondido
+    // E null significa "Não Aplicável" (resposta válida)
+    const completedItems = epiBasicoItems.filter(item => {
+      const value = data[item.key];
+      return value === true || value === false || value === null;
+    }).length;
 
     return { completed: completedItems, total: totalItems };
   };
@@ -93,8 +120,6 @@ export function EpiBasico({ data, onChange, errors }: EpiBasicoProps) {
         </div>
       )}
 
-
-
       {/* Instruções */}
       <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
         <h4 className="font-medium text-yellow-900 mb-2">📝 Instruções de Verificação</h4>
@@ -102,15 +127,16 @@ export function EpiBasico({ data, onChange, errors }: EpiBasicoProps) {
           <li>• Verifique cada item de EPI individualmente</li>
           <li>• Marque "Sim" apenas se o equipamento estiver em perfeitas condições</li>
           <li>• Verifique sempre o Certificado de Aprovação (CA) válido</li>
+          <li>• Use "Não Aplicável" apenas quando o EPI/equipamento não for necessário para a atividade</li>
           <li>• Em caso de dúvida, marque "Não" e anote nas observações</li>
-          <li>• Todos os itens são obrigatórios para trabalhos em campo</li>
+          <li>• Todos os itens devem ser respondidos antes de prosseguir</li>
         </ul>
       </div>
 
       {/* Lista de EPIs */}
       <div className="space-y-4">
         {epiBasicoItems.map((item) => {
-          const currentValue = data[item.key] as boolean | null;
+          const currentValue = data[item.key] as boolean | null | undefined;
 
           return (
             <div key={item.key} className="border rounded-lg p-4">
@@ -125,7 +151,7 @@ export function EpiBasico({ data, onChange, errors }: EpiBasicoProps) {
                     {item.description}
                   </p>
 
-                  <div className="flex gap-3">
+                  <div className="flex flex-wrap gap-3">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
@@ -153,6 +179,22 @@ export function EpiBasico({ data, onChange, errors }: EpiBasicoProps) {
                         ❌ Não - Reprovado
                       </span>
                     </label>
+
+                    {item.allowNA && (
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name={item.key}
+                          value="na"
+                          checked={currentValue === null}
+                          onChange={() => handleEpiChange(item.key, 'na')}
+                          className="w-4 h-4 text-gray-600 focus:ring-gray-500"
+                        />
+                        <span className="text-sm font-medium text-gray-700">
+                          ➖ Não Aplicável
+                        </span>
+                      </label>
+                    )}
                   </div>
                 </div>
 
@@ -170,6 +212,11 @@ export function EpiBasico({ data, onChange, errors }: EpiBasicoProps) {
                   )}
                   {currentValue === null && (
                     <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                      <span className="text-gray-600 text-sm">N/A</span>
+                    </div>
+                  )}
+                  {currentValue === undefined && (
+                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
                       <span className="text-gray-400 text-sm">?</span>
                     </div>
                   )}
@@ -183,7 +230,7 @@ export function EpiBasico({ data, onChange, errors }: EpiBasicoProps) {
       {/* Observações */}
       <div className="space-y-2">
         <Label htmlFor="observacoes_epi_basico" className="text-sm font-medium">
-          Observações sobre EPI Básico (opcional)
+          Observações sobre EPI Básico e Equipamentos (opcional)
         </Label>
         <textarea
           id="observacoes_epi_basico"
@@ -202,28 +249,29 @@ export function EpiBasico({ data, onChange, errors }: EpiBasicoProps) {
       {/* Resumo da verificação */}
       {isComplete && (
         <div className={`p-4 border rounded-lg ${
-          epiBasicoItems.every(item => data[item.key] === true)
+          epiBasicoItems.every(item => data[item.key] === true || data[item.key] === null)
             ? 'bg-green-50 border-green-200'
             : 'bg-orange-50 border-orange-200'
         }`}>
           <h4 className={`font-medium mb-2 ${
-            epiBasicoItems.every(item => data[item.key] === true)
+            epiBasicoItems.every(item => data[item.key] === true || data[item.key] === null)
               ? 'text-green-900'
               : 'text-orange-900'
           }`}>
-            {epiBasicoItems.every(item => data[item.key] === true)
-              ? '✅ Todos os EPIs Aprovados'
-              : '⚠️ Atenção: EPIs Reprovados'
+            {epiBasicoItems.every(item => data[item.key] === true || data[item.key] === null)
+              ? '✅ Verificação Completa'
+              : '⚠️ Atenção: Itens Reprovados'
             }
           </h4>
 
           <div className={`text-sm space-y-1 ${
-            epiBasicoItems.every(item => data[item.key] === true)
+            epiBasicoItems.every(item => data[item.key] === true || data[item.key] === null)
               ? 'text-green-800'
               : 'text-orange-800'
           }`}>
             <p><strong>Aprovados:</strong> {epiBasicoItems.filter(item => data[item.key] === true).length}</p>
             <p><strong>Reprovados:</strong> {epiBasicoItems.filter(item => data[item.key] === false).length}</p>
+            <p><strong>Não Aplicáveis:</strong> {epiBasicoItems.filter(item => data[item.key] === null).length}</p>
 
             {epiBasicoItems.filter(item => data[item.key] === false).length > 0 && (
               <div className="mt-2">
@@ -248,7 +296,7 @@ export function EpiBasico({ data, onChange, errors }: EpiBasicoProps) {
           <h4 className="font-medium text-red-900 mb-2">🚨 Alerta de Segurança</h4>
           <p className="text-sm text-red-800">
             Equipamentos reprovados foram identificados. É <strong>obrigatório</strong> substituir
-            ou reparar os EPIs antes de iniciar qualquer atividade de campo.
+            ou reparar os EPIs/equipamentos antes de iniciar qualquer atividade de campo.
             A segurança do trabalhador é prioridade absoluta.
           </p>
         </div>

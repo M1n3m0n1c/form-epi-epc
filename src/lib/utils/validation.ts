@@ -62,6 +62,22 @@ export function validateCPFDigits(cpf: string): boolean {
  * Schema de validação para formulário de identificação
  */
 export const identificacaoSchema = z.object({
+  // Dados do técnico/engenheiro de segurança
+  tecnico_nome_completo: z.string()
+    .min(3, 'Nome do técnico deve ter pelo menos 3 caracteres')
+    .max(255, 'Nome do técnico muito longo')
+    .regex(/^[a-zA-ZÀ-ÿ\s]+$/, 'Nome do técnico deve conter apenas letras e espaços'),
+
+  tecnico_cpf: z.string()
+    .refine(validateCPFFormat, 'CPF do técnico deve ter formato XXX.XXX.XXX-XX')
+    .refine(validateCPFDigits, 'CPF do técnico inválido'),
+
+  tecnico_funcao: z.string()
+    .min(2, 'Função do técnico muito curta')
+    .max(255, 'Função do técnico muito longa')
+    .regex(/^[a-zA-ZÀ-ÿ\s\/\-]+$/, 'Função do técnico deve conter apenas letras, espaços, hífens e barras'),
+
+  // Dados da pessoa inspecionada
   nome_completo: z.string()
     .min(3, 'Nome deve ter pelo menos 3 caracteres')
     .max(255, 'Nome muito longo')
@@ -81,8 +97,8 @@ export const identificacaoSchema = z.object({
     .regex(/^[a-zA-ZÀ-ÿ\s\/\-]+$/, 'Função deve conter apenas letras, espaços, hífens e barras'),
 
   regional: z.string()
-    .min(2, 'Regional muito curta')
-    .max(255, 'Regional muito longa'),
+    .max(255, 'Regional muito longa')
+    .optional(),
 });
 
 /**
@@ -159,8 +175,8 @@ export const formularioCompletoSchema = z.object({
 export const criarFormularioSchema = z.object({
   empresa: z.string().min(2, 'Nome da empresa muito curto').max(255),
   regional: z.string().min(2, 'Regional muito curta').max(255),
-  data_expiracao: z.string().datetime().optional(),
-  criado_por: z.string().max(255).optional(),
+  // data_expiracao removido - funcionalidade não utilizada
+  ufsigla: z.string().max(5).regex(/^[A-Za-z0-9]{1,5}$/, 'UFSIGLA deve conter apenas letras e números (máximo 5 caracteres)').optional(),
 });
 
 /**
@@ -272,8 +288,8 @@ export async function validateFormToken(token: string): Promise<TokenValidationR
     console.log('📋 Formulário encontrado:', {
       id: formulario.id,
       status: formulario.status,
-      empresa: formulario.empresa,
-      data_expiracao: formulario.data_expiracao
+      empresa: formulario.empresa
+      // data_expiracao removido - funcionalidade não utilizada
     });
 
     // Verificar se já foi respondido
@@ -286,22 +302,7 @@ export async function validateFormToken(token: string): Promise<TokenValidationR
       };
     }
 
-    // Verificar se expirou
-    const isExpired = checkTokenExpiration(formulario);
-    if (isExpired) {
-      // Atualizar status no banco se necessário
-      if (formulario.status !== 'expirado') {
-        await updateFormularioStatus(formulario.id, 'expirado');
-        formulario.status = 'expirado'; // Atualizar localmente
-      }
-
-      return {
-        isValid: false,
-        formulario,
-        error: 'Este formulário expirou',
-        status: 'expired'
-      };
-    }
+    // Funcionalidade de expiração removida
 
     // Token válido
     return {
@@ -323,20 +324,9 @@ export async function validateFormToken(token: string): Promise<TokenValidationR
 }
 
 /**
- * Verifica se um formulário expirou baseado na data de expiração
- * @param formulario Dados do formulário
- * @returns true se expirou, false caso contrário
+ * Funcionalidade de expiração removida - não utilizamos mais
  */
-export function checkTokenExpiration(formulario: Formulario): boolean {
-  if (!formulario.data_expiracao) {
-    return false; // Sem data de expiração = não expira
-  }
-
-  const now = new Date();
-  const expirationDate = new Date(formulario.data_expiracao);
-
-  return expirationDate < now;
-}
+// export function checkTokenExpiration(formulario: Formulario): boolean { ... }
 
 /**
  * Atualiza o status de um formulário no banco de dados
@@ -381,51 +371,9 @@ export function validateTokenFormat(token: string): boolean {
 }
 
 /**
- * Calcula tempo restante até expiração
- * @param formulario Dados do formulário
- * @returns Objeto com informações sobre tempo restante
+ * Funcionalidade de expiração removida - não utilizamos mais
  */
-export function getTimeUntilExpiration(formulario: Formulario): {
-  expired: boolean;
-  timeLeft: string;
-  hoursLeft: number;
-} {
-  if (!formulario.data_expiracao) {
-    return {
-      expired: false,
-      timeLeft: 'Sem expiração',
-      hoursLeft: Infinity
-    };
-  }
-
-  const now = new Date();
-  const expirationDate = new Date(formulario.data_expiracao);
-  const diffMs = expirationDate.getTime() - now.getTime();
-
-  if (diffMs <= 0) {
-    return {
-      expired: true,
-      timeLeft: 'Expirado',
-      hoursLeft: 0
-    };
-  }
-
-  const hoursLeft = Math.floor(diffMs / (1000 * 60 * 60));
-  const minutesLeft = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-  let timeLeft = '';
-  if (hoursLeft > 0) {
-    timeLeft = `${hoursLeft}h ${minutesLeft}min`;
-  } else {
-    timeLeft = `${minutesLeft}min`;
-  }
-
-  return {
-    expired: false,
-    timeLeft,
-    hoursLeft
-  };
-}
+// export function getTimeUntilExpiration(formulario: Formulario): { ... }
 
 /**
  * Validações de dados de entrada do formulário
