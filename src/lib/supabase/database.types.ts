@@ -226,7 +226,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      updateformulariostatus: {
+        Args: {
+          formulario_id: string
+          novo_status?: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

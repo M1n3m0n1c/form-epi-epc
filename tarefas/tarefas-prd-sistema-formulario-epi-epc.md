@@ -14,7 +14,7 @@
 - `.gitignore` - Configurado para ignorar arquivos .env
 - `index.html` - Arquivo HTML principal
 - `src/main.tsx` - Ponto de entrada da aplicação React (corrigido warning ESLint)
-- `src/App.tsx` - Componente principal da aplicação com teste de conexão Supabase
+- `src/App.tsx` - Componente principal da aplicação com React Router configurado para roteamento dinâmico
 - `src/lib/supabase/client.ts` - Cliente Supabase configurado com teste de conexão
 - `src/components/` - Estrutura de componentes organizados por funcionalidade
   - `src/components/admin/` - Componentes do painel administrativo
@@ -35,15 +35,15 @@
 - `src/components/admin/Dashboard.test.tsx` - Testes unitários para o Dashboard
 - `src/components/admin/FormGenerator.tsx` - Componente completo para geração de links únicos com data de expiração e cópia automática
 - `src/components/admin/FormGenerator.test.tsx` - Testes unitários para o FormGenerator
-- `src/components/admin/FormList.tsx` - Componente de listagem de formulários com filtros avançados por status, empresa e data
+- `src/components/admin/FormList.tsx` - Componente de listagem de formulários com filtros avançados por status, empresa, data e busca por nome do criador
 - `src/components/admin/FormViewer.tsx` - Componente completo para visualização detalhada de respostas com fotos organizadas por seção
 - `src/components/admin/FormViewer.test.tsx` - Testes unitários para o FormViewer
-- `src/components/form/FormContainer.tsx` - Container principal do formulário EPI/EPC
+- `src/components/form/FormContainer.tsx` - Container principal do formulário EPI/EPC com interface FormData atualizada para compatibilidade com schema do banco
 - `src/components/form/FormContainer.test.tsx` - Testes unitários para o FormContainer
 - `src/components/form/sections/Identificacao.tsx` - Seção de identificação do formulário
-- `src/components/form/sections/EpiBasico.tsx` - Seção de EPI básico com checklist
-- `src/components/form/sections/EpiAltura.tsx` - Seção de EPI para trabalho em altura
-- `src/components/form/sections/EpiEletrico.tsx` - Seção de EPI para trabalhos elétricos
+- `src/components/form/sections/EpiBasico.tsx` - Seção de EPI básico com checklist (atualizada com nomes de campos compatíveis com schema)
+- `src/components/form/sections/EpiAltura.tsx` - Seção de EPI para trabalho em altura (atualizada com nomes de campos compatíveis com schema)
+- `src/components/form/sections/EpiEletrico.tsx` - Seção de EPI para trabalhos elétricos (atualizada com nomes de campos compatíveis com schema)
 - `src/components/form/sections/InspecaoGeral.tsx` - Seção de inspeção geral
 - `src/components/form/sections/Conclusao.tsx` - Seção de conclusão com responsáveis regionais
 - `src/components/shared/PhotoUpload.tsx` - Componente para upload e captura de fotos
@@ -51,12 +51,13 @@
 - `src/lib/supabase/database.types.ts` - Tipos TypeScript gerados do banco Supabase (atualizado com schema completo)
 - `src/lib/utils/tokenGenerator.ts` - Utilitários para geração de tokens únicos
 - `src/lib/utils/tokenGenerator.test.ts` - Testes unitários para o tokenGenerator
+- `src/lib/utils/validation.ts` - Funções completas de validação de tokens, verificação de expiração e sanitização de dados
 - `src/lib/utils/photoCompression.ts` - Utilitários para compressão de fotos
 - `src/lib/utils/photoCompression.test.ts` - Testes unitários para a compressão de fotos
 - `src/lib/utils/reportGenerator.ts` - Utilitários para geração de relatórios PDF/DOCX
 - `src/lib/utils/reportGenerator.test.ts` - Testes unitários para o reportGenerator
 - `src/pages/admin/index.tsx` - Página principal do painel administrativo
-- `src/pages/form/[token].tsx` - Página dinâmica do formulário baseada no token
+- `src/pages/form/[token].tsx` - Página dinâmica do formulário baseada no token com validação completa e inserção no Supabase corrigida para compatibilidade com schema
 - `src/hooks/useFormData.ts` - Hook personalizado para gerenciamento de dados do formulário
 - `src/hooks/useFormData.test.ts` - Testes unitários para o useFormData
 - `src/types/form.types.ts` - Tipos TypeScript para o sistema de formulários
@@ -97,19 +98,24 @@
   - [x] 3.8 Criar filtros por empresa, período e regional
   - [x] 3.9 Implementar navegação responsiva para o painel administrativo
 
-- [ ] 4.0 Desenvolvimento da Interface de Preenchimento do Formulário
-  - [ ] 4.1 Criar página dinâmica de formulário baseada em token ([token].tsx)
-  - [ ] 4.2 Implementar validação de token único e verificação de expiração
-  - [ ] 4.3 Desenvolver seção de Identificação com campos obrigatórios e dropdown de empresas
-  - [ ] 4.4 Criar seção EPI Básico com checklist Sim/Não para 6 itens
-  - [ ] 4.5 Implementar seção EPI para Trabalho em Altura com checklist específico
-  - [ ] 4.6 Desenvolver seção EPI para Trabalhos Elétricos (condicional)
-  - [ ] 4.7 Criar seção Inspeção Geral com validações finais
-  - [ ] 4.8 Implementar seção Conclusão com dropdown de responsáveis regionais
-  - [ ] 4.9 Adicionar campos de observações em texto livre para cada seção
-  - [ ] 4.10 Implementar navegação entre seções e validação em tempo real
-  - [ ] 4.11 Criar design mobile-first responsivo com botões acessíveis
-  - [ ] 4.12 Implementar confirmação de envio bem-sucedido
+- [x] 4.0 Desenvolvimento da Interface de Preenchimento do Formulário
+  - [x] 4.1 Criar página dinâmica de formulário baseada em token ([token].tsx)
+  - [x] 4.2 Implementar validação de token único e verificação de expiração
+  - [x] 4.3 Desenvolver seção de Identificação com campos obrigatórios e dropdown de regionais
+  - [x] 4.4 Criar seção EPI Básico com checklist Sim/Não para 6 itens
+  - [x] 4.5 Implementar seção EPI para Trabalho em Altura com checklist específico
+  - [x] 4.6 Desenvolver seção EPI para Trabalhos Elétricos (condicional)
+  - [x] 4.7 Criar seção Inspeção Geral com validações finais
+  - [x] 4.8 Implementar seção Conclusão com dropdown de responsáveis regionais
+  - [x] 4.9 Adicionar campos de observações em texto livre para cada seção
+  - [x] 4.10 Implementar navegação entre seções e validação em tempo real
+  - [x] 4.11 Criar design mobile-first responsivo com botões acessíveis
+  - [x] 4.12 Implementar confirmação de envio bem-sucedido
+
+- [x] 4.13 Adicionar filtro de busca por nome do criador na listagem de formulários
+  - [x] 4.13.1 Implementar campo de busca de texto para filtrar por nome do criador
+  - [x] 4.13.2 Integrar filtro na função de filtragem existente
+  - [x] 4.13.3 Adicionar limpeza do filtro na função limparFiltros
 
 - [ ] 5.0 Sistema de Upload e Gerenciamento de Fotos
   - [ ] 5.1 Desenvolver componente PhotoUpload para captura via câmera

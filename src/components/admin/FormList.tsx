@@ -23,6 +23,7 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
   const [filtroEmpresa, setFiltroEmpresa] = useState('');
   const [filtroDataInicio, setFiltroDataInicio] = useState('');
   const [filtroDataFim, setFiltroDataFim] = useState('');
+  const [filtroCriador, setFiltroCriador] = useState('');
 
   const statusOptions = [
     { value: 'todos', label: 'Todos os Status' },
@@ -132,6 +133,13 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
         }
       }
 
+      // Filtro por nome do criador
+      if (filtroCriador && formulario.criado_por) {
+        if (!formulario.criado_por.toLowerCase().includes(filtroCriador.toLowerCase())) {
+          return false;
+        }
+      }
+
       return true;
     });
   };
@@ -141,6 +149,7 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
     setFiltroEmpresa('');
     setFiltroDataInicio('');
     setFiltroDataFim('');
+    setFiltroCriador('');
   };
 
   const copyLink = async (token: string) => {
@@ -185,6 +194,18 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
           <CardTitle>🔍 Filtros</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Campo de busca por criador - destaque principal */}
+          <div className="space-y-2">
+            <Label>🔍 Buscar por Nome do Criador</Label>
+            <Input
+              type="text"
+              placeholder="Digite o nome do criador do formulário..."
+              value={filtroCriador}
+              onChange={(e) => setFiltroCriador(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
               <Label>Status</Label>

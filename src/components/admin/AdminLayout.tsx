@@ -8,7 +8,7 @@ interface AdminLayoutProps {
   subtitle?: string;
   onBack?: () => void;
   activePage?: string;
-  onPageChange?: (page: string) => void;
+  onPageChange?: (page: any) => void;
 }
 
 export function AdminLayout({ children, title, subtitle, onBack, activePage, onPageChange }: AdminLayoutProps) {

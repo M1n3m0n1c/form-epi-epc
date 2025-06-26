@@ -1,9 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase/client';
-import type { Tables } from '@/lib/supabase/database.types';
 import { useEffect, useState } from 'react';
 
-type Formulario = Tables<'formularios'>;
+// type Formulario = Tables<'formularios'>;
 
 interface DashboardStats {
   totalGerados: number;

@@ -76,7 +76,7 @@ export function FormGenerator({ onFormGenerated }: FormGeneratorProps) {
         dataExpiracaoFormatada = dataExp.toISOString();
       }
 
-      // Gerar token único
+            // Gerar token único
       const token = generateFormToken();
 
       // Inserir no banco de dados

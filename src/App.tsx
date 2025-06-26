@@ -10,13 +10,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { testConnection } from '@/lib/supabase/client';
 import AdminPage from '@/pages/admin';
+import FormPage from '@/pages/form/[token]';
 import { useEffect, useState } from 'react';
+import { BrowserRouter, Route, Routes, useNavigate } from 'react-router-dom';
 
-function App() {
+// Componente Home separado para usar dentro do Router
+function HomePage() {
   const [count, setCount] = useState(0);
   const [name, setName] = useState('');
   const [supabaseConnected, setSupabaseConnected] = useState<boolean | null>(null);
-  const [currentPage, setCurrentPage] = useState<'home' | 'admin'>('home');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -26,10 +29,6 @@ function App() {
 
     checkConnection();
   }, []);
-
-  if (currentPage === 'admin') {
-    return <AdminPage onBack={() => setCurrentPage('home')} />;
-  }
 
   return (
     <div className='min-h-screen bg-background p-8'>
@@ -45,7 +44,7 @@ function App() {
 
         <div className='flex justify-center'>
           <Button
-            onClick={() => setCurrentPage('admin')}
+            onClick={() => navigate('/admin')}
             size="lg"
             className='bg-blue-600 hover:bg-blue-700'
           >
@@ -150,6 +149,25 @@ function App() {
         </Card>
       </div>
     </div>
+  );
+}
+
+// Componente wrapper para AdminPage com navegação
+function AdminPageWrapper() {
+  const navigate = useNavigate();
+
+  return <AdminPage onBack={() => navigate('/')} />;
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/admin" element={<AdminPageWrapper />} />
+        <Route path="/formulario/:token" element={<FormPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

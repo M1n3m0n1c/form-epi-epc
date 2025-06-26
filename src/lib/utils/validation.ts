@@ -1,3 +1,5 @@
+import { supabase } from '@/lib/supabase/client';
+import type { Tables } from '@/lib/supabase/database.types';
 import { z } from 'zod';
 
 // Schema de validação para CPF
@@ -75,7 +77,8 @@ export const identificacaoSchema = z.object({
 
   funcao: z.string()
     .min(2, 'Função muito curta')
-    .max(255, 'Função muito longa'),
+    .max(255, 'Função muito longa')
+    .regex(/^[a-zA-ZÀ-ÿ\s\/\-]+$/, 'Função deve conter apenas letras, espaços, hífens e barras'),
 
   regional: z.string()
     .min(2, 'Regional muito curta')
@@ -212,3 +215,267 @@ export type InspecaoGeralData = z.infer<typeof inspecaoGeralSchema>;
 export type ConclusaoData = z.infer<typeof conclusaoSchema>;
 export type FormularioCompletoData = z.infer<typeof formularioCompletoSchema>;
 export type CriarFormularioData = z.infer<typeof criarFormularioSchema>;
+
+type Formulario = Tables<'formularios'>;
+
+export interface TokenValidationResult {
+  isValid: boolean;
+  formulario: Formulario | null;
+  error: string | null;
+  status: 'valid' | 'invalid' | 'expired' | 'answered' | 'not_found' | 'error';
+}
+
+/**
+ * Valida um token de formulário e retorna o status completo
+ * @param token Token único do formulário
+ * @returns Resultado da validação com status detalhado
+ */
+export async function validateFormToken(token: string): Promise<TokenValidationResult> {
+  try {
+    // Validação básica do token
+    if (!token || token.trim().length === 0) {
+      return {
+        isValid: false,
+        formulario: null,
+        error: 'Token não fornecido',
+        status: 'invalid'
+      };
+    }
+
+    // Buscar formulário pelo token
+    console.log('🔍 Validando token:', token);
+    const { data: formulario, error: fetchError } = await supabase
+      .from('formularios')
+      .select('*')
+      .eq('token', token.trim())
+      .single();
+
+    if (fetchError) {
+      console.log('❌ Erro ao buscar formulário:', fetchError);
+      if (fetchError.code === 'PGRST116') {
+        return {
+          isValid: false,
+          formulario: null,
+          error: 'Token inválido ou formulário não encontrado',
+          status: 'not_found'
+        };
+      }
+
+      return {
+        isValid: false,
+        formulario: null,
+        error: `Erro ao buscar formulário: ${fetchError.message}`,
+        status: 'error'
+      };
+    }
+
+    console.log('📋 Formulário encontrado:', {
+      id: formulario.id,
+      status: formulario.status,
+      empresa: formulario.empresa,
+      data_expiracao: formulario.data_expiracao
+    });
+
+    // Verificar se já foi respondido
+    if (formulario.status === 'respondido') {
+      return {
+        isValid: false,
+        formulario,
+        error: 'Este formulário já foi respondido',
+        status: 'answered'
+      };
+    }
+
+    // Verificar se expirou
+    const isExpired = checkTokenExpiration(formulario);
+    if (isExpired) {
+      // Atualizar status no banco se necessário
+      if (formulario.status !== 'expirado') {
+        await updateFormularioStatus(formulario.id, 'expirado');
+        formulario.status = 'expirado'; // Atualizar localmente
+      }
+
+      return {
+        isValid: false,
+        formulario,
+        error: 'Este formulário expirou',
+        status: 'expired'
+      };
+    }
+
+    // Token válido
+    return {
+      isValid: true,
+      formulario,
+      error: null,
+      status: 'valid'
+    };
+
+  } catch (error) {
+    console.error('Erro na validação do token:', error);
+    return {
+      isValid: false,
+      formulario: null,
+      error: error instanceof Error ? error.message : 'Erro desconhecido na validação',
+      status: 'error'
+    };
+  }
+}
+
+/**
+ * Verifica se um formulário expirou baseado na data de expiração
+ * @param formulario Dados do formulário
+ * @returns true se expirou, false caso contrário
+ */
+export function checkTokenExpiration(formulario: Formulario): boolean {
+  if (!formulario.data_expiracao) {
+    return false; // Sem data de expiração = não expira
+  }
+
+  const now = new Date();
+  const expirationDate = new Date(formulario.data_expiracao);
+
+  return expirationDate < now;
+}
+
+/**
+ * Atualiza o status de um formulário no banco de dados
+ * @param formularioId ID do formulário
+ * @param status Novo status
+ */
+export async function updateFormularioStatus(
+  formularioId: string,
+  status: 'pendente' | 'respondido' | 'expirado'
+): Promise<void> {
+  // Usar função RPC para contornar problemas de RLS
+  const { data, error } = await supabase
+    .rpc('updateformulariostatus', {
+      formulario_id: formularioId,
+      novo_status: status
+    });
+
+  if (error) {
+    console.error('Erro ao atualizar status do formulário:', error);
+    throw new Error(`Erro ao atualizar status: ${error.message}`);
+  }
+
+  if (!data) {
+    console.warn('Formulário não foi atualizado (pode já ter sido respondido ou expirado)');
+  }
+}
+
+/**
+ * Valida formato de token (deve ter 12 caracteres alfanuméricos)
+ * @param token Token a ser validado
+ * @returns true se o formato é válido
+ */
+export function validateTokenFormat(token: string): boolean {
+  if (!token) return false;
+
+  // Token deve ter exatamente 12 caracteres
+  if (token.length !== 12) return false;
+
+  // Token deve conter apenas caracteres seguros (sem caracteres ambíguos)
+  const safeAlphabetRegex = /^[23456789ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz]{12}$/;
+  return safeAlphabetRegex.test(token);
+}
+
+/**
+ * Calcula tempo restante até expiração
+ * @param formulario Dados do formulário
+ * @returns Objeto com informações sobre tempo restante
+ */
+export function getTimeUntilExpiration(formulario: Formulario): {
+  expired: boolean;
+  timeLeft: string;
+  hoursLeft: number;
+} {
+  if (!formulario.data_expiracao) {
+    return {
+      expired: false,
+      timeLeft: 'Sem expiração',
+      hoursLeft: Infinity
+    };
+  }
+
+  const now = new Date();
+  const expirationDate = new Date(formulario.data_expiracao);
+  const diffMs = expirationDate.getTime() - now.getTime();
+
+  if (diffMs <= 0) {
+    return {
+      expired: true,
+      timeLeft: 'Expirado',
+      hoursLeft: 0
+    };
+  }
+
+  const hoursLeft = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutesLeft = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+  let timeLeft = '';
+  if (hoursLeft > 0) {
+    timeLeft = `${hoursLeft}h ${minutesLeft}min`;
+  } else {
+    timeLeft = `${minutesLeft}min`;
+  }
+
+  return {
+    expired: false,
+    timeLeft,
+    hoursLeft
+  };
+}
+
+/**
+ * Validações de dados de entrada do formulário
+ */
+export const formValidation = {
+  /**
+   * Valida CPF (formato simples)
+   */
+  cpf: (cpf: string): boolean => {
+    if (!cpf) return false;
+    const cleanCpf = cpf.replace(/\D/g, '');
+    return cleanCpf.length === 11;
+  },
+
+  /**
+   * Valida nome completo
+   */
+  nomeCompleto: (nome: string): boolean => {
+    if (!nome) return false;
+    const trimmed = nome.trim();
+    return trimmed.length >= 3 && trimmed.includes(' ');
+  },
+
+  /**
+   * Valida função/cargo
+   */
+  funcao: (funcao: string): boolean => {
+    if (!funcao) return false;
+    return funcao.trim().length >= 2;
+  },
+
+  /**
+   * Valida observações (opcional, mas se preenchido deve ter conteúdo)
+   */
+  observacoes: (observacoes: string): boolean => {
+    if (!observacoes) return true; // Opcional
+    return observacoes.trim().length >= 3;
+  }
+};
+
+/**
+ * Sanitiza dados de entrada removendo caracteres perigosos
+ */
+export function sanitizeInput(input: string): string {
+  if (!input) return '';
+
+  return input
+    .trim()
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove scripts
+    .replace(/<[^>]*>/g, '') // Remove HTML tags
+    .replace(/[<>&]/g, '') // Remove apenas caracteres realmente perigosos (preserva espaços, acentos e aspas)
+    .substring(0, 1000); // Limita tamanho
+}
