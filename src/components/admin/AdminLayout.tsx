@@ -36,7 +36,7 @@ export function AdminLayout({ children, title, subtitle, activePage, onPageChang
             <div className="flex items-center">
               <div className="flex-shrink-0 flex items-center">
                 <img
-                  src="/src/assets/app-logo.png"
+                  src="/app-logo.png"
                   alt="Logo do Sistema"
                   className="h-14 w-auto mr-3"
                 />
@@ -52,7 +52,7 @@ export function AdminLayout({ children, title, subtitle, activePage, onPageChang
 
             <div className="flex items-center space-x-4">
               <img
-                src="/src/assets/logo_tlf.png"
+                src="/logo_tlf.png"
                 alt="Logo TLF"
                 className="h-8 w-auto"
               />
