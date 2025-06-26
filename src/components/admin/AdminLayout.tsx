@@ -1,3 +1,4 @@
+import logoTelefonica from '@/assets/logo_telefonica.png';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import React from 'react';
@@ -34,18 +35,19 @@ export function AdminLayout({ children, title, subtitle, onBack, activePage, onP
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 flex items-center">
+                <img
+                  src={logoTelefonica}
+                  alt="Logo Telefónica"
+                  className="h-8 w-auto mr-3"
+                />
                 <h1 className="text-xl font-bold text-gray-900">
-                  Sistema EPI/EPC
+                  SISFE: Sistema Formulário EPI/EPC
                 </h1>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              {onBack && (
-                <Button variant="outline" onClick={onBack}>
-                  ← Voltar
-                </Button>
-              )}
+
               <span className="text-sm text-gray-500">Painel Administrativo</span>
             </div>
           </div>
