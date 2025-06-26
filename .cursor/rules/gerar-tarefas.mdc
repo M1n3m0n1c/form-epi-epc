@@ -1,0 +1,66 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Regra: Gerando uma Lista de Tarefas a partir de um PRD
+
+## Objetivo
+
+Orientar um assistente de IA na criação de uma lista de tarefas detalhada e passo a passo em formato Markdown, com base em um Documento de Requisitos do Produto (PRD) existente. A lista de tarefas deve guiar um desenvolvedor durante a implementação.
+
+## Saída
+
+- **Formato:** Markdown (`.md`)
+- **Localização:** `/tarefas/`
+- **Nome do arquivo:** `tarefas-[nome-do-arquivo-prd].md` (ex: `tasks-prd-edicao-perfil-usuario.md`)
+
+## Processo
+
+1.  **Receber Referência do PRD:** O usuário aponta a IA para um arquivo PRD específico.
+2.  **Analisar PRD:** A IA lê e analisa os requisitos funcionais, histórias de usuário e outras seções do PRD especificado.
+3.  **Fase 1: Gerar Tarefas Principais:** Com base na análise do PRD, crie o arquivo e gere as tarefas principais de alto nível necessárias para implementar a funcionalidade. Use seu julgamento sobre quantas tarefas de alto nível usar. É provável que sejam cerca de 5. Apresente essas tarefas ao usuário no formato especificado (ainda sem subtarefas). Informe o usuário: "Gerei as tarefas de alto nível com base no PRD. Pronto para gerar as subtarefas? Responda com 'Go' para prosseguir."
+4.  **Aguardar Confirmação:** Pause e aguarde o usuário responder com "Go".
+5.  **Fase 2: Gerar Subtarefas:** Assim que o usuário confirmar, divida cada tarefa principal em subtarefas menores e acionáveis, necessárias para concluir a tarefa principal. Garanta que as subtarefas sigam logicamente a tarefa principal e cubram os detalhes de implementação implícitos no PRD.
+6.  **Identificar Arquivos Relevantes:** Com base nas tarefas e no PRD, identifique os arquivos potenciais que precisarão ser criados ou modificados. Liste-os na seção `Arquivos Relevantes`, incluindo os arquivos de teste correspondentes, se aplicável.
+7.  **Gerar Saída Final:** Combine as tarefas principais, subtarefas, arquivos relevantes e notas na estrutura final do Markdown.
+8.  **Salvar Lista de Tarefas:** Salve o documento gerado no diretório `/tarefas/` com o nome de arquivo `tarefas-[nome-do-arquivo-prd].md`, onde `[nome-do-arquivo-prd]` corresponde ao nome base do arquivo PRD de entrada (por exemplo, se a entrada foi `prd-edicao-perfil-usuario.md`, a saída é `tarefas-prd-edicao-perfil-usuario.md`).
+
+## Formato de Saída
+
+A lista de tarefas gerada _deve_ seguir esta estrutura:
+
+```markdown
+## Arquivos Relevantes
+
+- `caminho/para/arquivo/potencial1.ts` - Breve descrição do motivo pelo qual este arquivo é relevante (ex: Contém o componente principal para esta funcionalidade).
+- `caminho/para/arquivo1.test.ts` - Testes unitários para `arquivo1.ts`.
+- `caminho/para/outro/arquivo.tsx` - Breve descrição (ex: Manipulador de rota de API para envio de dados).
+- `caminho/para/outro/arquivo.test.tsx` - Testes unitários para `outro/arquivo.tsx`.
+- `lib/utils/helpers.ts` - Breve descrição (ex: Funções utilitárias necessárias para cálculos).
+- `lib/utils/helpers.test.ts` - Testes unitários para `helpers.ts`.
+
+### Notas
+
+- Os testes unitários geralmente devem ser colocados ao lado dos arquivos de código que estão testando (ex: `MeuComponente.tsx` e `MeuComponente.test.tsx` no mesmo diretório).
+- Use `npx jest [caminho/opcional/para/arquivo/de/teste]` para executar os testes. Executar sem um caminho executa todos os testes encontrados pela configuração do Jest.
+
+## Tarefas
+
+- [ ] 1.0 Título da Tarefa Principal
+  - [ ] 1.1 [Descrição da subtarefa 1.1]
+  - [ ] 1.2 [Descrição da subtarefa 1.2]
+- [ ] 2.0 Título da Tarefa Principal
+  - [ ] 2.1 [Descrição da subtarefa 2.1]
+- [ ] 3.0 Título da Tarefa Principal (pode não exigir subtarefas se for puramente estrutural ou de configuração)
+```
+
+## Modelo de Interação
+
+O processo requer explicitamente uma pausa após a geração das tarefas principais para obter a confirmação do usuário ("Go") antes de prosseguir para a geração das subtarefas detalhadas. Isso garante que o plano de alto nível esteja alinhado com as expectativas do usuário antes de mergulhar nos detalhes.
+
+## Público-Alvo
+
+Presuma que o leitor principal da lista de tarefas é um **desenvolvedor júnior** que implementará a funcionalidade.
+
+
