@@ -95,7 +95,7 @@ export function FormGenerator({ onFormGenerated }: FormGeneratorProps) {
 
       // Gerar link completo
       const baseUrl = window.location.origin;
-      const link = `${baseUrl}/formulario/${token}`;
+      const link = `${baseUrl}/form/${token}`;
 
       setGeneratedLink(link);
       setSuccess('Link gerado com sucesso!');

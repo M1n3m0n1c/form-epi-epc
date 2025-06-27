@@ -38,6 +38,12 @@ const epiAlturaItems: EpiAlturaItem[] = [
     label: 'Capacete com Jugular',
     description: 'Capacete com sistema de retenção jugular ajustável',
     icon: '⛑️'
+  },
+  {
+    key: 'epi_trava_quedas',
+    label: 'Trava Quedas',
+    description: 'Dispositivo retrátil ou deslizante, funcionamento verificado',
+    icon: '🛡️'
   }
 ];
 
@@ -53,6 +59,7 @@ export function EpiAltura({ data, onChange, errors, formulario }: EpiAlturaProps
         epi_cinto_seguranca: null,
         epi_talabarte: null,
         epi_capacete_jugular: null,
+        epi_trava_quedas: null,
         observacoes_epi_altura: ''
       });
     }

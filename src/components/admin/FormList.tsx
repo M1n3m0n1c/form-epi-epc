@@ -260,7 +260,7 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
 
   const copyLink = async (token: string) => {
     const baseUrl = window.location.origin;
-    const link = `${baseUrl}/formulario/${token}`;
+    const link = `${baseUrl}/form/${token}`;
 
     try {
       await navigator.clipboard.writeText(link);

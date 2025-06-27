@@ -275,10 +275,12 @@ export default function FormPage() {
         epi_cinto_seguranca: formData.epi_cinto_seguranca === undefined ? null : formData.epi_cinto_seguranca,
         epi_talabarte: formData.epi_talabarte === undefined ? null : formData.epi_talabarte,
         epi_capacete_jugular: formData.epi_capacete_jugular === undefined ? null : formData.epi_capacete_jugular,
+        epi_trava_quedas: formData.epi_trava_quedas === undefined ? null : formData.epi_trava_quedas,
         trabalho_eletrico: formData.trabalho_eletrico === undefined ? null : formData.trabalho_eletrico,
         epi_luvas_isolantes: formData.epi_luvas_isolantes === undefined ? null : formData.epi_luvas_isolantes,
         epi_calcado_isolante: formData.epi_calcado_isolante === undefined ? null : formData.epi_calcado_isolante,
         epi_capacete_classe_b: formData.epi_capacete_classe_b === undefined ? null : formData.epi_capacete_classe_b,
+        epi_vestimenta_antiarco: formData.epi_vestimenta_antiarco === undefined ? null : formData.epi_vestimenta_antiarco,
         equipamentos_integros: formData.equipamentos_integros === undefined ? null : formData.equipamentos_integros,
         treinamento_adequado: formData.treinamento_adequado === undefined ? null : formData.treinamento_adequado,
         certificados_validos: formData.certificados_validos === undefined ? null : formData.certificados_validos,
@@ -343,6 +345,7 @@ export default function FormPage() {
         epi_cinto_seguranca: sanitizedFormData.epi_cinto_seguranca,
         epi_talabarte: sanitizedFormData.epi_talabarte,
         epi_capacete_jugular: sanitizedFormData.epi_capacete_jugular,
+        epi_trava_quedas: sanitizedFormData.epi_trava_quedas,
         observacoes_epi_altura: sanitizedFormData.observacoes_epi_altura,
 
         // EPI Elétrico
@@ -350,6 +353,7 @@ export default function FormPage() {
         epi_luvas_isolantes: sanitizedFormData.epi_luvas_isolantes,
         epi_calcado_isolante: sanitizedFormData.epi_calcado_isolante,
         epi_capacete_classe_b: sanitizedFormData.epi_capacete_classe_b,
+        epi_vestimenta_antiarco: sanitizedFormData.epi_vestimenta_antiarco,
         observacoes_epi_eletrico: sanitizedFormData.observacoes_epi_eletrico,
 
         // Inspeção Geral

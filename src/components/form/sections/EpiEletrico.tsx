@@ -39,6 +39,12 @@ const epiEletricoItems: EpiEletricoItem[] = [
     label: 'Capacete Classe B',
     description: 'Capacete dielétrico classe B, testado e certificado',
     icon: '⛑️'
+  },
+  {
+    key: 'epi_vestimenta_antiarco',
+    label: 'Vestimenta Anti-arco',
+    description: 'Roupa de proteção contra arco elétrico, certificação CA válida',
+    icon: '🦺'
   }
 ];
 
@@ -87,6 +93,7 @@ export function EpiEletrico({ data, onChange, errors, formulario }: EpiEletricoP
         epi_luvas_isolantes: undefined,
         epi_calcado_isolante: undefined,
         epi_capacete_classe_b: undefined,
+        epi_vestimenta_antiarco: undefined,
         observacoes_epi_eletrico: '',
         fotos_epi_eletrico: [] // Limpar fotos também
       });

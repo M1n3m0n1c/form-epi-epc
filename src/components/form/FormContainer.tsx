@@ -42,6 +42,7 @@ export interface FormData {
   epi_cinto_seguranca: boolean | null | undefined;
   epi_talabarte: boolean | null | undefined;
   epi_capacete_jugular: boolean | null | undefined;
+  epi_trava_quedas: boolean | null | undefined;
   observacoes_epi_altura: string;
 
   // EPI Elétrico
@@ -49,6 +50,7 @@ export interface FormData {
   epi_luvas_isolantes: boolean | null | undefined;
   epi_calcado_isolante: boolean | null | undefined;
   epi_capacete_classe_b: boolean | null | undefined; // detector de tensão -> capacete classe B
+  epi_vestimenta_antiarco: boolean | null | undefined;
   observacoes_epi_eletrico: string;
 
   // Inspeção Geral
@@ -119,6 +121,7 @@ export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerP
     epi_cinto_seguranca: undefined,
     epi_talabarte: undefined,
     epi_capacete_jugular: undefined,
+    epi_trava_quedas: undefined,
     observacoes_epi_altura: '',
 
     // EPI Elétrico
@@ -126,6 +129,7 @@ export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerP
     epi_luvas_isolantes: undefined,
     epi_calcado_isolante: undefined,
     epi_capacete_classe_b: undefined,
+    epi_vestimenta_antiarco: undefined,
     observacoes_epi_eletrico: '',
 
     // Inspeção Geral
