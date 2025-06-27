@@ -1,9 +1,33 @@
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { supabase } from '@/lib/supabase/client';
 import type { Tables } from '@/lib/supabase/database.types';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { CalendarIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 type Formulario = Tables<'formularios'>;
@@ -35,9 +59,13 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
   // Filtros
   const [filtroStatus, setFiltroStatus] = useState('todos');
   const [filtroEmpresa, setFiltroEmpresa] = useState('');
-  const [filtroDataInicio, setFiltroDataInicio] = useState('');
-  const [filtroDataFim, setFiltroDataFim] = useState('');
+  const [filtroDataInicio, setFiltroDataInicio] = useState<Date | undefined>();
+  const [filtroDataFim, setFiltroDataFim] = useState<Date | undefined>();
   const [filtroBusca, setFiltroBusca] = useState('');
+
+  // Paginação
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const itensPorPagina = 5;
 
   const statusOptions = [
     { value: 'todos', label: 'Todos os Status' },
@@ -149,8 +177,7 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
       // Filtro por data de início
       if (filtroDataInicio) {
         const dataFormulario = new Date(formulario.created_at || formulario.data_criacao || '');
-        const dataInicio = new Date(filtroDataInicio);
-        if (dataFormulario < dataInicio) {
+        if (dataFormulario < filtroDataInicio) {
           return false;
         }
       }
@@ -158,9 +185,9 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
       // Filtro por data de fim
       if (filtroDataFim) {
         const dataFormulario = new Date(formulario.created_at || formulario.data_criacao || '');
-        const dataFim = new Date(filtroDataFim);
-        dataFim.setHours(23, 59, 59, 999);
-        if (dataFormulario > dataFim) {
+        const dataFimAjustada = new Date(filtroDataFim);
+        dataFimAjustada.setHours(23, 59, 59, 999);
+        if (dataFormulario > dataFimAjustada) {
           return false;
         }
       }
@@ -225,9 +252,10 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
   const limparFiltros = () => {
     setFiltroStatus('todos');
     setFiltroEmpresa('');
-    setFiltroDataInicio('');
-    setFiltroDataFim('');
+    setFiltroDataInicio(undefined);
+    setFiltroDataFim(undefined);
     setFiltroBusca('');
+    setPaginaAtual(1); // Reset página ao limpar filtros
   };
 
   const copyLink = async (token: string) => {
@@ -242,6 +270,63 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
   };
 
   const formulariosFiltered = filtrarFormularios();
+
+  // Cálculos de paginação
+  const totalPaginas = Math.ceil(formulariosFiltered.length / itensPorPagina);
+  const indiceInicio = (paginaAtual - 1) * itensPorPagina;
+  const indiceFim = indiceInicio + itensPorPagina;
+  const formulariosPaginados = formulariosFiltered.slice(indiceInicio, indiceFim);
+
+  // Resetar página quando filtros mudam
+  useEffect(() => {
+    setPaginaAtual(1);
+  }, [filtroStatus, filtroEmpresa, filtroDataInicio, filtroDataFim, filtroBusca]);
+
+  const irParaPagina = (pagina: number) => {
+    if (pagina >= 1 && pagina <= totalPaginas) {
+      setPaginaAtual(pagina);
+    }
+  };
+
+  const gerarPaginasVisiveis = () => {
+    const paginas: (number | 'ellipsis')[] = [];
+    const maxPaginasVisiveis = 5;
+
+    if (totalPaginas <= maxPaginasVisiveis) {
+      // Se há poucas páginas, mostrar todas
+      for (let i = 1; i <= totalPaginas; i++) {
+        paginas.push(i);
+      }
+    } else {
+      // Lógica mais complexa para muitas páginas
+      if (paginaAtual <= 3) {
+        // Início: 1, 2, 3, 4, ..., última
+        for (let i = 1; i <= 4; i++) {
+          paginas.push(i);
+        }
+        if (totalPaginas > 5) paginas.push('ellipsis');
+        paginas.push(totalPaginas);
+      } else if (paginaAtual >= totalPaginas - 2) {
+        // Final: 1, ..., antepenúltima, penúltima, última
+        paginas.push(1);
+        if (totalPaginas > 5) paginas.push('ellipsis');
+        for (let i = totalPaginas - 3; i <= totalPaginas; i++) {
+          paginas.push(i);
+        }
+      } else {
+        // Meio: 1, ..., atual-1, atual, atual+1, ..., última
+        paginas.push(1);
+        paginas.push('ellipsis');
+        for (let i = paginaAtual - 1; i <= paginaAtual + 1; i++) {
+          paginas.push(i);
+        }
+        paginas.push('ellipsis');
+        paginas.push(totalPaginas);
+      }
+    }
+
+    return paginas;
+  };
 
   if (error) {
     return (
@@ -267,89 +352,260 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
   return (
     <div className="space-y-6">
       {/* Filtros */}
-      <Card>
-        <CardHeader>
-          <CardTitle>🔍 Filtros</CardTitle>
+      <Card className="w-full max-w-none border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <CardHeader className="py-1">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex-1 min-w-0">
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="filtros" className="border-none">
+                  <div className="flex items-center gap-2 w-full">
+                    <AccordionTrigger className="hover:no-underline py-1 w-auto rounded-lg px-1 transition-colors [&>svg]:bg-blue-500 [&>svg]:text-white [&>svg]:p-0.5 [&>svg]:rounded-full [&>svg]:w-5 [&>svg]:h-5 [&>svg]:transition-all [&>svg]:duration-200 hover:[&>svg]:bg-blue-600 hover:[&>svg]:scale-110">
+                    </AccordionTrigger>
+                    <div className="bg-gray-100 text-gray-600 p-1.5 rounded-full">
+                      🔍
+                    </div>
+                    <div className="flex flex-col items-start flex-1">
+                      <CardTitle className="text-left text-gray-800 text-base font-bold">
+                        Filtros Avançados
+                      </CardTitle>
+                      <span className="text-xs text-gray-600">
+                        Clique para expandir opções de filtro
+                      </span>
+                    </div>
+                  </div>
+                  <AccordionContent className="space-y-4 pt-2 bg-white rounded-lg border border-blue-100 mx-2 mb-2 p-3">
+                    {/* Botões de ação */}
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        onClick={limparFiltros}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Limpar Filtros
+                      </Button>
+                      <Button
+                        onClick={loadFormularios}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Atualizar
+                      </Button>
+                    </div>
+
+                    {/* Campo de busca */}
+                    <div className="space-y-1">
+                      <Label className="text-xs font-medium text-gray-700">
+                        Buscar por UFSigla, Nome, CPF, Função ou Regional do Inspecionador/Inspecionado
+                      </Label>
+                      <Input
+                        type="text"
+                        placeholder="Digite UFSigla, nome, CPF, função ou regional do inspecionador/inspecionado..."
+                        value={filtroBusca}
+                        onChange={(e) => setFiltroBusca(e.target.value)}
+                        className="w-full border-blue-200 focus:border-blue-400 focus:ring-blue-200 h-8"
+                      />
+                    </div>
+
+                    {/* Filtros */}
+                    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-gray-700">
+                          Status
+                        </Label>
+                        <select
+                          value={filtroStatus}
+                          onChange={(e) => setFiltroStatus(e.target.value)}
+                          className="w-full p-1.5 border border-blue-200 rounded-md text-sm focus:border-blue-400 focus:ring-blue-200 bg-white h-8"
+                        >
+                          {statusOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-gray-700">
+                          Empresa
+                        </Label>
+                        <select
+                          value={filtroEmpresa}
+                          onChange={(e) => setFiltroEmpresa(e.target.value)}
+                          className="w-full p-1.5 border border-blue-200 rounded-md text-sm focus:border-blue-400 focus:ring-blue-200 bg-white h-8"
+                        >
+                          <option value="">Todas as empresas</option>
+                          {empresas.map((empresa) => (
+                            <option key={empresa} value={empresa}>
+                              {empresa}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-gray-700">
+                          Data Início
+                        </Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal text-sm h-8",
+                                !filtroDataInicio && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {filtroDataInicio ? (
+                                format(filtroDataInicio, "dd/MM/yyyy")
+                              ) : (
+                                <span>Selecionar data</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={filtroDataInicio}
+                              onSelect={setFiltroDataInicio}
+                              captionLayout="dropdown"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+
+                          Data Fim
+                        </Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal text-sm",
+                                !filtroDataFim && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {filtroDataFim ? (
+                                format(filtroDataFim, "dd/MM/yyyy")
+                              ) : (
+                                <span>Selecionar data</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={filtroDataFim}
+                              onSelect={setFiltroDataFim}
+                              captionLayout="dropdown"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+
+                    {/* Indicador de Filtros Ativos */}
+                    {(filtroStatus !== 'todos' || filtroEmpresa || filtroDataInicio || filtroDataFim || filtroBusca) && (
+                      <div className="flex items-center gap-3 text-sm bg-gradient-to-r from-emerald-50 to-teal-50 px-4 py-3 rounded-lg border-2 border-emerald-200 shadow-sm">
+                        <div className="bg-emerald-500 text-white p-1.5 rounded-full">
+                          ✨
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-emerald-800">Filtros Aplicados</span>
+                          <span className="text-emerald-600">
+                            Exibindo {formulariosFiltered.length} de {formularios.length} formulários
+                          </span>
+                        </div>
+                        <div className="ml-auto">
+                          <Button
+                            onClick={limparFiltros}
+                            size="sm"
+                            variant="outline"
+                          >
+                            Limpar
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Campo de busca - destaque principal */}
-          <div className="space-y-2">
-            <Label>Buscar por UFSigla, Nome, CPF, Função ou Regional do Inspecionador/Inspecionado</Label>
-            <Input
-              type="text"
-              placeholder="Digite UFSigla, nome, CPF, função ou regional do inspecionador/inspecionado..."
-              value={filtroBusca}
-              onChange={(e) => setFiltroBusca(e.target.value)}
-              className="w-full"
-            />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <select
-                value={filtroStatus}
-                onChange={(e) => setFiltroStatus(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md"
-              >
-                {statusOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Empresa</Label>
-              <select
-                value={filtroEmpresa}
-                onChange={(e) => setFiltroEmpresa(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md"
-              >
-                <option value="">Todas as empresas</option>
-                {empresas.map((empresa) => (
-                  <option key={empresa} value={empresa}>
-                    {empresa}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Data Início</Label>
-              <Input
-                type="date"
-                value={filtroDataInicio}
-                onChange={(e) => setFiltroDataInicio(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Data Fim</Label>
-              <Input
-                type="date"
-                value={filtroDataFim}
-                onChange={(e) => setFiltroDataFim(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Button onClick={limparFiltros} variant="outline">
-              Limpar Filtros
-            </Button>
-            <Button onClick={loadFormularios} variant="outline">
-              Atualizar
-            </Button>
-          </div>
+        <CardContent className="pt-0">
+          {/* Conteúdo vazio - filtros agora estão no accordion do cabeçalho */}
         </CardContent>
       </Card>
 
       {/* Lista */}
       <Card>
         <CardHeader>
-          <CardTitle>📋 Formulários ({formulariosFiltered.length})</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2">
+              <CardTitle>📋 Formulários ({formulariosFiltered.length})</CardTitle>
+              {formulariosFiltered.length > itensPorPagina && (
+                <div className="text-sm text-gray-600">
+                  Página {paginaAtual} de {totalPaginas} • Mostrando {formulariosPaginados.length} de {formulariosFiltered.length} formulários
+                </div>
+              )}
+            </div>
+
+            {/* Paginação no topo - só exibe se há mais de 5 formulários */}
+            {formulariosFiltered.length > itensPorPagina && (
+              <div className="flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          irParaPagina(paginaAtual - 1);
+                        }}
+                        className={paginaAtual === 1 ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+
+                    {gerarPaginasVisiveis().map((pagina, index) => (
+                      <PaginationItem key={index}>
+                        {pagina === 'ellipsis' ? (
+                          <PaginationEllipsis />
+                        ) : (
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              irParaPagina(pagina);
+                            }}
+                            isActive={pagina === paginaAtual}
+                          >
+                            {pagina}
+                          </PaginationLink>
+                        )}
+                      </PaginationItem>
+                    ))}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          irParaPagina(paginaAtual + 1);
+                        }}
+                        className={paginaAtual === totalPaginas ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -364,7 +620,7 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
             </div>
           ) : (
             <div className="space-y-4">
-              {formulariosFiltered.map((formulario) => {
+              {formulariosPaginados.map((formulario) => {
                 const statusInfo = getStatusInfo(formulario);
                 const dataFormatada = formulario.created_at
                   ? new Date(formulario.created_at).toLocaleString('pt-BR')
@@ -469,7 +725,7 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
                           onClick={() => copyLink(formulario.token)}
                           className="whitespace-nowrap"
                         >
-                          📋 Copiar Link
+                          Copiar Link
                         </Button>
 
                         {onViewForm && formulario.status === 'respondido' && (
@@ -478,7 +734,7 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
                             onClick={() => onViewForm(formulario)}
                             className="whitespace-nowrap"
                           >
-                            👁️ Ver Resposta
+                            Ver Resposta
                           </Button>
                         )}
                       </div>
@@ -486,6 +742,56 @@ export function FormList({ onViewForm, onRefresh }: FormListProps) {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Paginação - só exibe se há mais de 5 formulários */}
+          {formulariosFiltered.length > itensPorPagina && (
+            <div className="mt-6 flex justify-center">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        irParaPagina(paginaAtual - 1);
+                      }}
+                      className={paginaAtual === 1 ? 'pointer-events-none opacity-50' : ''}
+                    />
+                  </PaginationItem>
+
+                  {gerarPaginasVisiveis().map((pagina, index) => (
+                    <PaginationItem key={index}>
+                      {pagina === 'ellipsis' ? (
+                        <PaginationEllipsis />
+                      ) : (
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            irParaPagina(pagina);
+                          }}
+                          isActive={pagina === paginaAtual}
+                        >
+                          {pagina}
+                        </PaginationLink>
+                      )}
+                    </PaginationItem>
+                  ))}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        irParaPagina(paginaAtual + 1);
+                      }}
+                      className={paginaAtual === totalPaginas ? 'pointer-events-none opacity-50' : ''}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           )}
         </CardContent>

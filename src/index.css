@@ -109,6 +109,48 @@
   --sidebar-ring: oklch(0.553 0.013 58.071);
 }
 
+.telefonica {
+  /* Telefônica Theme Colors */
+  --background: oklch(0.98 0.005 240);
+  --foreground: oklch(0.15 0.01 240);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.01 240);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.01 240);
+  /* Principal: #0066FF */
+  --primary: oklch(0.55 0.25 255);
+  --primary-foreground: oklch(1 0 0);
+  /* Secundária: #E8ECEF */
+  --secondary: oklch(0.93 0.005 240);
+  --secondary-foreground: oklch(0.15 0.01 240);
+  --muted: oklch(0.93 0.005 240);
+  --muted-foreground: oklch(0.45 0.01 240);
+  --accent: oklch(0.93 0.005 240);
+  --accent-foreground: oklch(0.15 0.01 240);
+  /* Destaque: #07B2FB */
+  --highlight: oklch(0.68 0.18 210);
+  /* Destaque Escuro: #0048B4 */
+  --highlight-dark: oklch(0.35 0.18 255);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.9 0.005 240);
+  --input: oklch(0.95 0.005 240);
+  --ring: oklch(0.55 0.25 255);
+  --chart-1: oklch(0.55 0.25 255);
+  --chart-2: oklch(0.68 0.18 210);
+  --chart-3: oklch(0.35 0.18 255);
+  --chart-4: oklch(0.93 0.005 240);
+  --chart-5: oklch(0.45 0.01 240);
+  /* Sidebar azul Telefônica com texto branco */
+  --sidebar: oklch(0.55 0.25 255); /* Azul principal da Telefônica #0066FF */
+  --sidebar-foreground: oklch(1 0 0); /* Texto branco */
+  --sidebar-primary: oklch(0.68 0.18 210); /* Azul claro para itens ativos #07B2FB */
+  --sidebar-primary-foreground: oklch(1 0 0); /* Texto branco para itens ativos */
+  --sidebar-accent: oklch(0.35 0.18 255); /* Azul escuro para hover #0048B4 */
+  --sidebar-accent-foreground: oklch(1 0 0); /* Texto branco para hover */
+  --sidebar-border: oklch(0.68 0.18 210); /* Borda azul claro */
+  --sidebar-ring: oklch(0.68 0.18 210); /* Ring azul claro */
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -116,4 +158,53 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@layer utilities {
+  .bg-grid-pattern {
+    background-image: radial-gradient(circle at 1px 1px, rgba(0,0,0,0.15) 1px, transparent 0);
+    background-size: 20px 20px;
+  }
+
+  .container {
+    @apply w-full mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+  }
+}
+
+/* Melhorias para o Switch no tema Telefônica */
+.telefonica [data-slot="switch"] {
+  /* Switch desabilitado (tema claro) - fundo cinza claro sem borda */
+  @apply border-0 bg-gray-200 outline-none;
+}
+
+.telefonica [data-slot="switch"][data-state="checked"] {
+  /* Switch habilitado (tema TLF) - azul Telefônica sem borda */
+  background: oklch(0.55 0.25 255) !important; /* Azul principal #0066FF */
+  border: none !important;
+  outline: none !important;
+}
+
+.telefonica [data-slot="switch"]:focus-visible {
+  /* Remover destaque do foco */
+  @apply ring-0 outline-none;
+  border: none !important;
+}
+
+.telefonica [data-slot="switch-thumb"] {
+  /* Thumb branco com sombra para contraste */
+  @apply bg-white shadow-md;
+}
+
+.telefonica [data-slot="switch"][data-state="checked"] [data-slot="switch-thumb"] {
+  /* Thumb no estado ativo - branco com sombra maior */
+  @apply bg-white shadow-lg;
 }

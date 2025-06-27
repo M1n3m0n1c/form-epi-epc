@@ -1,17 +1,99 @@
-# Sistema de Formulário EPI/EPC
+# Sistema de Formulários EPI/EPC (SISFEE)
 
-## 🚀 Tecnologias
+Sistema web para criação e gerenciamento de formulários de inspeção de Equipamentos de Proteção Individual (EPI) e Equipamentos de Proteção Coletiva (EPC).
 
-Este projeto foi configurado com as seguintes tecnologias:
+## ✨ Novidades
 
-- **React 19** - Biblioteca JavaScript para construção de interfaces
-- **TypeScript** - Superset do JavaScript com tipagem estática
-- **Vite** - Build tool rápido e moderno
-- **Tailwind CSS v4** - Framework CSS utilitário
-- **Shadcn/UI** - Componentes React reutilizáveis e acessíveis
-- **React Hook Form** - Biblioteca para gerenciamento de formulários
-- **Zod** - Biblioteca de validação de schemas
-- **Supabase** - Backend como serviço (BaaS)
+### 🎨 Sidebar Moderno com shadcn/ui
+
+O sistema agora utiliza um sidebar moderno e profissional baseado no shadcn/ui, oferecendo:
+
+- **Design responsivo**: Funciona perfeitamente em desktop e mobile
+- **Sidebar colapsável**: Pode ser minimizado para economizar espaço
+- **Atalho de teclado**: `Ctrl/Cmd + B` para alternar o sidebar
+- **Navegação intuitiva**: Ícones modernos e estado ativo visual
+- **Tema consistente**: Integrado com o sistema de temas do projeto
+
+#### Componentes do Sidebar
+
+- `AppSidebar`: Componente principal do sidebar
+- `SidebarProvider`: Contexto para gerenciar estado do sidebar
+- `SidebarTrigger`: Botão para alternar o sidebar
+- `SidebarMenu`: Sistema de navegação com ícones
+
+#### Funcionalidades
+
+- 📊 **Dashboard**: Visão geral do sistema
+- 📋 **Formulários**: Lista e gerenciamento de formulários
+- 🔗 **Gerar Link**: Criação de novos formulários
+
+## 🚀 Tecnologias Utilizadas
+
+- **React 18** - Biblioteca principal
+- **TypeScript** - Tipagem estática
+- **Vite** - Build tool e dev server
+- **Tailwind CSS** - Framework CSS
+- **shadcn/ui** - Componentes UI modernos
+- **Lucide React** - Ícones
+- **Supabase** - Backend as a Service
+
+## 🛠️ Instalação
+
+```bash
+# Clone o repositório
+git clone <repo-url>
+cd form-epi
+
+# Instale as dependências
+npm install
+
+# Configure as variáveis de ambiente
+cp env.example .env
+
+# Inicie o servidor de desenvolvimento
+npm run dev
+```
+
+## 📱 Responsividade
+
+O sidebar é totalmente responsivo:
+
+- **Desktop**: Sidebar fixo na lateral esquerda
+- **Mobile**: Sidebar em overlay (sheet) que pode ser aberto/fechado
+- **Tablet**: Comportamento adaptativo baseado no tamanho da tela
+
+## 🎨 Personalização
+
+O sidebar pode ser personalizado através das variáveis CSS:
+
+```css
+:root {
+  --sidebar: oklch(0.985 0.001 106.423);
+  --sidebar-foreground: oklch(0.147 0.004 49.25);
+  --sidebar-primary: oklch(0.216 0.006 56.043);
+  --sidebar-accent: oklch(0.97 0.001 106.424);
+  /* ... outras variáveis */
+}
+```
+
+## 🔧 Desenvolvimento
+
+Para adicionar novos itens ao sidebar, edite o arquivo `src/components/admin/AppSidebar.tsx`:
+
+```typescript
+const menuItems = [
+  {
+    id: 'dashboard',
+    title: "Dashboard",
+    icon: BarChart3,
+  },
+  // Adicione novos itens aqui
+]
+```
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT.
 
 ## 📦 Instalação
 

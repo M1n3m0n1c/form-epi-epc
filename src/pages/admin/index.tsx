@@ -3,6 +3,14 @@ import { Dashboard } from '@/components/admin/Dashboard';
 import { FormGenerator } from '@/components/admin/FormGenerator';
 import { FormList } from '@/components/admin/FormList';
 import { FormViewer } from '@/components/admin/FormViewer';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 import type { Tables } from '@/lib/supabase/database.types';
 import { useState } from 'react';
 
@@ -65,46 +73,111 @@ export function AdminPage({ onBack }: AdminPageProps) {
     }
   };
 
-  const getPageInfo = () => {
+  const getBreadcrumb = () => {
+    const breadcrumbItems = [
+      {
+        label: '🏠 Painel Administrativo',
+        page: 'dashboard' as ActivePage,
+        isHome: true
+      }
+    ];
+
     switch (activePage) {
       case 'dashboard':
-        return {
-          title: 'Dashboard',
-          subtitle: 'Visualize estatísticas e gerencie formulários EPI/EPC'
-        };
+        // Apenas o item home para dashboard
+        break;
+
       case 'generator':
-        return {
-          title: 'Gerar Formulário',
-          subtitle: 'Crie novos links únicos para formulários EPI/EPC'
-        };
+        breadcrumbItems.push({
+          label: '➕ Gerar Formulário',
+          page: 'generator' as ActivePage,
+          isHome: false
+        });
+        break;
+
       case 'forms':
-        return {
-          title: 'Lista de Formulários',
-          subtitle: 'Visualize e gerencie todos os formulários criados'
-        };
+        breadcrumbItems.push({
+          label: '📋 Lista de Formulários',
+          page: 'forms' as ActivePage,
+          isHome: false
+        });
+        break;
+
       case 'viewer':
-        return {
-          title: 'Visualizar Resposta',
-          subtitle: selectedFormulario ? `Formulário: ${selectedFormulario.token}` : 'Detalhes da resposta'
-        };
+        breadcrumbItems.push({
+          label: '📋 Lista de Formulários',
+          page: 'forms' as ActivePage,
+          isHome: false
+        });
+        breadcrumbItems.push({
+          label: selectedFormulario ? `👁️ Visualizar: ${selectedFormulario.token}` : '👁️ Visualizar Resposta',
+          page: 'viewer' as ActivePage,
+          isHome: false
+        });
+        break;
+    }
+
+    return (
+      <Breadcrumb className="mb-6">
+        <BreadcrumbList>
+          {breadcrumbItems.map((item, index) => (
+            <div key={item.page} className="flex items-center">
+              <BreadcrumbItem>
+                {index === breadcrumbItems.length - 1 ? (
+                  // Página atual - não clicável
+                  <BreadcrumbPage className="font-medium">
+                    {item.label}
+                  </BreadcrumbPage>
+                ) : (
+                  // Páginas anteriores - clicáveis
+                  <BreadcrumbLink
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (item.page === 'forms' && activePage === 'viewer') {
+                        // Se voltando do viewer para forms, limpar formulário selecionado
+                        setSelectedFormulario(null);
+                      }
+                      setActivePage(item.page);
+                    }}
+                    className="hover:text-blue-600 transition-colors cursor-pointer"
+                  >
+                    {item.label}
+                  </BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+              {index < breadcrumbItems.length - 1 && <BreadcrumbSeparator />}
+            </div>
+          ))}
+        </BreadcrumbList>
+      </Breadcrumb>
+    );
+  };
+
+  const getPageSubtitle = () => {
+    switch (activePage) {
+      case 'dashboard':
+        return 'Visualize estatísticas e gerencie formulários EPI/EPC';
+      case 'generator':
+        return 'Crie novos links únicos para formulários EPI/EPC';
+      case 'forms':
+        return 'Visualize e gerencie todos os formulários criados';
+      case 'viewer':
+        return selectedFormulario ? `Detalhes da resposta do formulário ${selectedFormulario.token}` : 'Detalhes da resposta';
       default:
-        return {
-          title: 'Painel Administrativo',
-          subtitle: 'Sistema de Formulários EPI/EPC'
-        };
+        return 'Sistema de Formulários EPI/EPC';
     }
   };
 
-  const pageInfo = getPageInfo();
-
   return (
     <AdminLayout
-      title={pageInfo.title}
-      subtitle={pageInfo.subtitle}
+      title="" // Título vazio pois usaremos o breadcrumb
+      subtitle={getPageSubtitle()}
       onBack={onBack}
       activePage={activePage}
       onPageChange={setActivePage}
     >
+      {getBreadcrumb()}
       {renderContent()}
     </AdminLayout>
   );

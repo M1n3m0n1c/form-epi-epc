@@ -1,18 +1,8 @@
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase/client';
 import { useEffect, useState } from 'react';
 
 // type Formulario = Tables<'formularios'>;
-
-interface DashboardStats {
-  totalGerados: number;
-  respondidos: number;
-  pendentes: number;
-}
-
-
 
 interface DailyActivity {
   data: string;
@@ -21,31 +11,21 @@ interface DailyActivity {
 }
 
 export function Dashboard() {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalGerados: 0,
-    respondidos: 0,
-    pendentes: 0,
-  });
-
   const [dailyActivity, setDailyActivity] = useState<DailyActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filtros para o gráfico
-  const [filtroGraficoEmpresa, setFiltroGraficoEmpresa] = useState('');
-  const [filtroGraficoRegional, setFiltroGraficoRegional] = useState('');
-  const [empresasDisponiveis, setEmpresasDisponiveis] = useState<string[]>([]);
-  const [regionaisDisponiveis, setRegionaisDisponiveis] = useState<string[]>([]);
-  const [periodoGrafico, setPeriodoGrafico] = useState<number>(15); // Últimos 15 dias
+  // Período do gráfico
+  const [periodoGrafico, setPeriodoGrafico] = useState<number>(7); // Últimos 7 dias
 
   useEffect(() => {
     loadDashboardData();
   }, []);
 
   useEffect(() => {
-    // Recarregar dados do gráfico quando filtros mudarem
+    // Recarregar dados do gráfico quando período mudar
     loadDailyActivityData();
-  }, [filtroGraficoEmpresa, filtroGraficoRegional, periodoGrafico]);
+  }, [periodoGrafico]);
 
   const loadDashboardData = async () => {
     try {
@@ -63,30 +43,11 @@ export function Dashboard() {
       }
 
       if (!formularios || formularios.length === 0) {
-        setStats({ totalGerados: 0, respondidos: 0, pendentes: 0 });
         setDailyActivity([]);
-        setEmpresasDisponiveis([]);
-        setRegionaisDisponiveis([]);
         return;
       }
 
-      // Calcular estatísticas gerais
-      const totalGerados = formularios.length;
-      const respondidos = formularios.filter(f => f.status === 'respondido').length;
-      const pendentes = totalGerados - respondidos;
 
-      setStats({
-        totalGerados,
-        respondidos,
-        pendentes,
-      });
-
-      // Extrair empresas e regionais únicas para os filtros
-      const empresasUnicas = [...new Set(formularios.map(f => f.empresa))].sort();
-      const regionaisUnicas = [...new Set(formularios.map(f => f.regional))].sort();
-
-      setEmpresasDisponiveis(empresasUnicas);
-      setRegionaisDisponiveis(regionaisUnicas);
 
 
 
@@ -103,22 +64,12 @@ export function Dashboard() {
 
   const loadDailyActivityData = async () => {
     try {
-      // Construir query com filtros
-      let query = supabase
+      // Buscar formulários do período selecionado
+      const { data: formularios, error } = await supabase
         .from('formularios')
         .select('*')
         .gte('created_at', new Date(Date.now() - periodoGrafico * 24 * 60 * 60 * 1000).toISOString())
         .order('created_at', { ascending: true });
-
-      if (filtroGraficoEmpresa) {
-        query = query.eq('empresa', filtroGraficoEmpresa);
-      }
-
-      if (filtroGraficoRegional) {
-        query = query.eq('regional', filtroGraficoRegional);
-      }
-
-      const { data: formularios, error } = await query;
 
       if (error) {
         throw error;
@@ -177,46 +128,14 @@ export function Dashboard() {
     }
   };
 
-  const statCards = [
-    {
-      title: 'Total Gerados',
-      value: stats.totalGerados,
-      icon: '📋',
-      description: 'Formulários criados',
-      color: 'text-blue-600',
-    },
-    {
-      title: 'Respondidos',
-      value: stats.respondidos,
-      icon: '✅',
-      description: 'Formulários preenchidos',
-      color: 'text-green-600',
-    },
-    {
-      title: 'Pendentes',
-      value: stats.pendentes,
-      icon: '⏳',
-      description: 'Aguardando resposta',
-      color: 'text-yellow-600',
-    },
-    {
-      title: 'Taxa de Resposta',
-      value: stats.totalGerados > 0 ? `${Math.round((stats.respondidos / stats.totalGerados) * 100)}%` : '0%',
-      icon: '📊',
-      description: 'Percentual de conclusão',
-      color: 'text-purple-600',
-    },
-  ];
+
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
   };
 
-  const limparFiltrosGrafico = () => {
-    setFiltroGraficoEmpresa('');
-    setFiltroGraficoRegional('');
-  };
+
 
   if (error) {
     return (
@@ -240,226 +159,216 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Cards de Estatísticas */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((card) => (
-          <Card key={card.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
-              <span className="text-2xl">{card.icon}</span>
-            </CardHeader>
-            <CardContent className="text-center">
-              <div className={`text-2xl font-bold ${card.color}`}>
-                {isLoading ? '...' : card.value}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {card.description}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-
-
-
-
-      {/* Gráfico de Atividade Diária */}
+      {/* Estatísticas do Período */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            📊 Quantidade de Questionários (Últimos {periodoGrafico} dias)
+            📈 Estatísticas do Período ({periodoGrafico} dias)
           </CardTitle>
           <p className="text-sm text-gray-600">
-            Acompanhamento diário de questionários criados e respondidos.
+            Resumo dos dados dos últimos {periodoGrafico} dias selecionados.
           </p>
         </CardHeader>
         <CardContent>
-          {/* Filtros do Gráfico */}
-          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-            <div className="grid gap-4 md:grid-cols-4">
-              <div className="space-y-2">
-                <Label>Período</Label>
-                <select
-                  value={periodoGrafico}
-                  onChange={(e) => setPeriodoGrafico(Number(e.target.value))}
-                  className="w-full p-2 border border-gray-300 rounded-md text-sm"
-                >
-                  <option value={7}>Últimos 7 dias</option>
-                  <option value={15}>Últimos 15 dias</option>
-                  <option value={30}>Últimos 30 dias</option>
-                  <option value={60}>Últimos 60 dias</option>
-                </select>
+          {isLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-sm text-gray-500">Carregando estatísticas...</p>
+            </div>
+          ) : dailyActivity.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Nenhum dado disponível para o período selecionado</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-blue-50 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-blue-600">
+                  {dailyActivity.reduce((acc, day) => acc + day.criados, 0)}
+                </div>
+                <div className="text-sm text-blue-700 font-medium">Total Criados</div>
               </div>
+              <div className="bg-green-50 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {dailyActivity.reduce((acc, day) => acc + day.respondidos, 0)}
+                </div>
+                <div className="text-sm text-green-700 font-medium">Total Respondidos</div>
+              </div>
+              <div className="bg-purple-50 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-purple-600">
+                  {dailyActivity.reduce((acc, day) => acc + day.criados + day.respondidos, 0)}
+                </div>
+                <div className="text-sm text-purple-700 font-medium">Total Geral</div>
+              </div>
+              <div className="bg-orange-50 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {(() => {
+                    const totalCriados = dailyActivity.reduce((acc, day) => acc + day.criados, 0);
+                    const totalRespondidos = dailyActivity.reduce((acc, day) => acc + day.respondidos, 0);
+                    return totalCriados > 0 ? `${((totalRespondidos / totalCriados) * 100).toFixed(1)}%` : '0%';
+                  })()}
+                </div>
+                <div className="text-sm text-orange-700 font-medium">Taxa de Resposta</div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-              <div className="space-y-2">
-                <Label>Empresa</Label>
-                <select
-                  value={filtroGraficoEmpresa}
-                  onChange={(e) => setFiltroGraficoEmpresa(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md text-sm"
+      {/* Gráfico de Barras Lado a Lado */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            📊 Relatórios por Dia (Últimos {periodoGrafico} dias)
+          </CardTitle>
+          <p className="text-sm text-gray-600">
+            Gráfico de barras lado a lado mostrando relatórios criados e respondidos por dia.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {/* Controle de Período */}
+          <div className="mb-6 flex justify-center">
+            <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
+              {[7, 15, 30].map((dias) => (
+                <button
+                  key={dias}
+                  onClick={() => setPeriodoGrafico(dias)}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    periodoGrafico === dias
+                      ? 'bg-white text-blue-600 shadow-sm border border-gray-200'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
                 >
-                  <option value="">Todas as empresas</option>
-                  {empresasDisponiveis.map((empresa) => (
-                    <option key={empresa} value={empresa}>
-                      {empresa}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Regional</Label>
-                <select
-                  value={filtroGraficoRegional}
-                  onChange={(e) => setFiltroGraficoRegional(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md text-sm"
-                >
-                  <option value="">Todas as regionais</option>
-                  {regionaisDisponiveis.map((regional) => (
-                    <option key={regional} value={regional}>
-                      {regional}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>&nbsp;</Label>
-                <Button
-                  onClick={limparFiltrosGrafico}
-                  variant="outline"
-                  className="w-full text-sm"
-                >
-                  🔄 Limpar Filtros
-                </Button>
-              </div>
+                  {dias} dias
+                </button>
+              ))}
             </div>
           </div>
 
           {isLoading ? (
-            <div className="text-center py-8">
-              <span className="text-2xl">⏳</span>
-              <p className="text-sm text-gray-500 mt-2">Carregando gráfico...</p>
+            <div className="text-center py-12">
+              <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-sm text-gray-500">Carregando dados do gráfico...</p>
+            </div>
+          ) : dailyActivity.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-4xl mb-4">📊</div>
+              <p className="text-gray-500">Nenhum dado encontrado para o período selecionado</p>
+              <p className="text-xs text-gray-400 mt-2">Verifique se há formulários criados nos últimos {periodoGrafico} dias</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {/* Legenda */}
-              <div className="flex justify-center space-x-6 text-sm">
-                <div className="flex items-center space-x-2">
+              <div className="flex justify-center gap-8 text-sm">
+                <div className="flex items-center gap-2">
                   <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                  <span>Criados</span>
+                  <span className="font-medium">Criados</span>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                   <div className="w-4 h-4 bg-green-500 rounded"></div>
-                  <span>Respondidos</span>
+                  <span className="font-medium">Respondidos</span>
                 </div>
               </div>
 
-              {/* Gráfico de Barras Agrupadas */}
-              <div className="relative">
-                {/* Escala Y */}
-                <div className="flex">
-                  <div className="w-8 flex flex-col-reverse justify-between text-xs text-gray-500 mr-2">
+
+              {/* Gráfico de Barras Lado a Lado */}
+              <div className="relative bg-white rounded-lg border p-4">
+                <div className="flex h-80">
+                  {/* Eixo Y - Escala */}
+                  <div className="w-12 flex flex-col-reverse justify-between text-xs text-gray-500 mr-4 py-2">
                     {Array.from({ length: 6 }, (_, i) => {
+                      // Calcular valor máximo individual (criados ou respondidos)
                       const maxValue = Math.max(...dailyActivity.map(d => Math.max(d.criados, d.respondidos)), 1);
-                      const value = Math.ceil((maxValue / 5) * i);
+                      const maxScale = Math.ceil(maxValue / 5) * 5; // Arredondar para múltiplo de 5
+                      const value = Math.round((maxScale / 5) * i);
                       return (
-                        <div key={i} className="h-6 flex items-center">
+                        <div key={i} className="text-right pr-2 leading-none">
                           {value}
                         </div>
                       );
                     })}
                   </div>
 
-                  {/* Área do gráfico */}
-                  <div className="flex-1">
-                    {/* Grid de fundo */}
-                    <div className="relative h-64 border-l border-b border-gray-300 bg-white">
-                      {/* Linhas horizontais do grid */}
+                  {/* Área do Gráfico */}
+                  <div className="flex-1 relative">
+                    {/* Grid horizontal */}
+                    <div className="absolute inset-0 flex flex-col justify-between py-2">
                       {Array.from({ length: 6 }, (_, i) => (
-                        <div
-                          key={i}
-                          className="absolute w-full border-t border-gray-200"
-                          style={{ bottom: `${(i / 5) * 100}%` }}
-                        />
+                        <div key={i} className="border-t border-gray-200 w-full" />
                       ))}
+                    </div>
 
-                      {/* Barras */}
-                      <div className="absolute inset-0 flex items-end justify-around px-1">
-                        {dailyActivity.map((day, index) => {
-                          const maxValue = Math.max(...dailyActivity.map(d => Math.max(d.criados, d.respondidos)), 1);
-                          // Calcular altura corretamente para alinhar com a escala Y
-                          const criadosHeight = day.criados > 0 ? Math.max((day.criados / maxValue) * 100, 2) : 0;
-                          const respondidosHeight = day.respondidos > 0 ? Math.max((day.respondidos / maxValue) * 100, 2) : 0;
+                                                            {/* Barras Lado a Lado */}
+                    <div className="absolute inset-0 flex items-end justify-around px-2 py-2">
+                      {dailyActivity.map((day, index) => {
+                        const maxValue = Math.max(...dailyActivity.map(d => Math.max(d.criados, d.respondidos)), 1);
+                        const maxScale = Math.ceil(maxValue / 5) * 5;
 
-                          const barWidth = periodoGrafico > 30 ? 'w-1.5' : periodoGrafico > 15 ? 'w-2' : 'w-3';
-                          const spaceX = periodoGrafico > 30 ? 'space-x-0.5' : 'space-x-1';
+                        // Calcular alturas individuais baseadas no valor máximo (ajustado para altura disponível)
+                        const availableHeight = 100; // 100% da altura do container
+                        const criadosHeight = day.criados > 0 ? Math.max((day.criados / maxScale) * availableHeight, 3) : 0;
+                        const respondidosHeight = day.respondidos > 0 ? Math.max((day.respondidos / maxScale) * availableHeight, 3) : 0;
 
-                          return (
-                            <div key={index} className={`flex items-end ${spaceX} h-full justify-center`}>
+                        // Largura das barras baseada no período
+                        const barWidth = periodoGrafico === 7 ? 'w-6' : periodoGrafico === 15 ? 'w-4' : 'w-3';
+                        const spacing = periodoGrafico === 7 ? 'gap-2' : 'gap-1';
+
+                        return (
+                          <div key={index} className={`flex items-end ${spacing} h-full justify-center group relative`}>
+                            {/* Container para as barras */}
+                            <div className="flex items-end gap-1 h-full">
                               {/* Barra Criados */}
-                              <div className="relative group">
+                              <div className="relative h-full flex items-end">
                                 <div
-                                  className={`bg-blue-500 ${barWidth} transition-all duration-200 hover:bg-blue-600`}
+                                  className={`${barWidth} bg-blue-500 hover:bg-blue-600 transition-colors rounded-t-sm`}
                                   style={{
                                     height: `${criadosHeight}%`,
-                                    minHeight: day.criados > 0 ? '2px' : '0px'
+                                    minHeight: day.criados > 0 ? '4px' : '0px'
                                   }}
+                                  title={`${day.criados} criados`}
                                 />
-                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                                  {day.criados} criados
-                                </div>
                               </div>
 
                               {/* Barra Respondidos */}
-                              <div className="relative group">
+                              <div className="relative h-full flex items-end">
                                 <div
-                                  className={`bg-green-500 ${barWidth} transition-all duration-200 hover:bg-green-600`}
+                                  className={`${barWidth} bg-green-500 hover:bg-green-600 transition-colors rounded-t-sm`}
                                   style={{
                                     height: `${respondidosHeight}%`,
-                                    minHeight: day.respondidos > 0 ? '2px' : '0px'
+                                    minHeight: day.respondidos > 0 ? '4px' : '0px'
                                   }}
+                                  title={`${day.respondidos} respondidos`}
                                 />
-                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                                  {day.respondidos} respondidos
-                                </div>
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
+
+                            {/* Tooltip */}
+                            <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-lg">
+                              <div className="font-medium">{formatDate(day.data)}</div>
+                              <div className="text-blue-300">Criados: {day.criados}</div>
+                              <div className="text-green-300">Respondidos: {day.respondidos}</div>
+                              <div className="text-gray-300 border-t border-gray-600 mt-1 pt-1">Total: {day.criados + day.respondidos}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
 
-                    {/* Eixo X - Datas */}
-                    <div className="flex justify-around mt-4 text-xs text-gray-500 h-12 overflow-hidden px-1">
-                      {dailyActivity.map((day, index) => (
-                        <div key={index} className="text-center flex items-start justify-center">
-                          <div className="transform -rotate-45 origin-center whitespace-nowrap text-[10px]">
-                            {formatDate(day.data)}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    {/* Linha base do gráfico */}
+                    <div className="absolute bottom-2 left-0 right-0 border-b-2 border-gray-300" />
                   </div>
                 </div>
-              </div>
 
-              {/* Resumo dos dados filtrados */}
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <div className="text-sm text-blue-800">
-                  <strong>Resumo do período:</strong> {' '}
-                  {dailyActivity.reduce((acc, day) => acc + day.criados, 0)} criados | {' '}
-                  {dailyActivity.reduce((acc, day) => acc + day.respondidos, 0)} respondidos
-                  {(filtroGraficoEmpresa || filtroGraficoRegional) && (
-                    <span className="ml-2 text-xs">
-                      (filtrado por {filtroGraficoEmpresa && `empresa: ${filtroGraficoEmpresa}`}
-                      {filtroGraficoEmpresa && filtroGraficoRegional && ', '}
-                      {filtroGraficoRegional && `regional: ${filtroGraficoRegional}`})
-                    </span>
-                  )}
+                {/* Eixo X - Datas */}
+                <div className="ml-16 mt-4 flex justify-around text-xs text-gray-600">
+                  {dailyActivity.map((day, index) => (
+                    <div key={index} className="text-center font-medium">
+                      {formatDate(day.data)}
+                    </div>
+                  ))}
                 </div>
               </div>
+
+
             </div>
           )}
         </CardContent>
