@@ -1,7 +1,10 @@
+import type { PhotoData } from '@/components/shared/PhotoUpload';
+import { QuestionPhotoUpload } from '@/components/shared/PhotoUpload';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { Tables } from '@/lib/supabase/database.types';
 import { formValidation } from '@/lib/utils/validation';
+import { useCallback } from 'react';
 import type { FormData } from '../FormContainer';
 
 type Formulario = Tables<'formularios'>;
@@ -13,7 +16,12 @@ interface IdentificacaoProps {
   formulario: Formulario;
 }
 
-export function Identificacao({ data, onChange, errors }: IdentificacaoProps) {
+export function Identificacao({ data, onChange, errors, formulario }: IdentificacaoProps) {
+
+  // Handler para fotos da seção - REMOVIDO onChange das dependências para evitar loop
+  const handlePhotosChange = useCallback((_questionKey: string, photos: PhotoData[]) => {
+    onChange({ fotos_identificacao: photos });
+  }, []); // Removido onChange das dependências
 
   const handleInputChange = (field: keyof FormData, value: string) => {
     // Passar valor diretamente sem sanitização em tempo real
@@ -159,6 +167,26 @@ export function Identificacao({ data, onChange, errors }: IdentificacaoProps) {
           <p className="text-xs text-gray-500">
             Informe sua função ou cargo atual
           </p>
+        </div>
+      </div>
+
+      {/* Upload de fotos da seção */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">
+          Fotos do Técnico/Engenheiro (opcional)
+        </Label>
+        <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          <p className="text-sm text-gray-600 mb-3">
+            Você pode adicionar fotos relacionadas à identificação do técnico responsável pela inspeção.
+          </p>
+          <QuestionPhotoUpload
+            questionKey="identificacao_geral"
+            secao="identificacao"
+            formularioId={formulario.id}
+            maxPhotos={2}
+            photos={data.fotos_identificacao || []}
+            onPhotosChange={handlePhotosChange}
+          />
         </div>
       </div>
 

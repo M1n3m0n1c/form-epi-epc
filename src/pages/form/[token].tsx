@@ -146,8 +146,111 @@ export default function FormPage() {
     }
   };
 
+  const uploadPhotos = async (photos: any[], respostaId: string, secao: string) => {
+    const uploadedPhotos = [];
+
+    for (const photo of photos) {
+      try {
+        // Upload para Supabase Storage
+        const storagePath = `formularios/${state.validationResult?.formulario?.id}/${secao}/${photo.id}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('fotos')
+          .upload(storagePath, photo.file, {
+            cacheControl: '3600',
+            upsert: true // Permitir substituir arquivos existentes
+          });
+
+        if (uploadError) {
+          console.error('Erro no upload da foto:', uploadError);
+          // Se for erro de duplicação, tentar obter a URL do arquivo existente
+          if (uploadError.message?.includes('already exists') || uploadError.message?.includes('Duplicate')) {
+            console.log('📸 Arquivo já existe, obtendo URL...');
+          } else {
+            // Para outros erros, pular esta foto
+            continue;
+          }
+        }
+
+        // Obter URL pública
+        const { data: { publicUrl } } = supabase.storage
+          .from('fotos')
+          .getPublicUrl(storagePath);
+
+        // Salvar metadados no banco
+        try {
+          const { error: dbError } = await supabase
+            .from('fotos')
+            .insert({
+              formulario_id: state.validationResult?.formulario?.id,
+              resposta_id: respostaId,
+              secao: secao,
+              nome_arquivo: photo.metadata.fileName,
+              url_storage: publicUrl,
+              tamanho_bytes: photo.metadata.fileSize,
+              tipo_mime: photo.metadata.mimeType,
+              metadata: {
+                width: photo.metadata.width,
+                height: photo.metadata.height,
+                aspectRatio: photo.metadata.aspectRatio,
+                lastModified: photo.metadata.lastModified,
+                compressionResult: photo.compressionResult,
+                questionKey: photo.metadata.questionKey, // Incluir questionKey do metadata
+                secao: photo.metadata.secao // Incluir seção do metadata
+              }
+            });
+
+          if (dbError) {
+            console.error('Erro ao salvar metadados da foto:', dbError);
+            // Tentar com upsert se falhar
+            const { error: upsertError } = await supabase
+              .from('fotos')
+              .upsert({
+                formulario_id: state.validationResult?.formulario?.id,
+                resposta_id: respostaId,
+                secao: secao,
+                nome_arquivo: photo.metadata.fileName,
+                url_storage: publicUrl,
+                tamanho_bytes: photo.metadata.fileSize,
+                tipo_mime: photo.metadata.mimeType,
+                metadata: {
+                  width: photo.metadata.width,
+                  height: photo.metadata.height,
+                  aspectRatio: photo.metadata.aspectRatio,
+                  lastModified: photo.metadata.lastModified,
+                  compressionResult: photo.compressionResult,
+                  questionKey: photo.metadata.questionKey,
+                  secao: photo.metadata.secao
+                }
+              });
+
+            if (upsertError) {
+              console.error('Erro no upsert dos metadados da foto:', upsertError);
+            } else {
+              uploadedPhotos.push(photo);
+            }
+          } else {
+            uploadedPhotos.push(photo);
+          }
+        } catch (metadataError) {
+          console.error('Erro ao processar metadados da foto:', metadataError);
+        }
+      } catch (error) {
+        console.error('Erro no upload da foto:', error);
+      }
+    }
+
+    return uploadedPhotos;
+  };
+
   const handleFormSubmit = async (formData: FormData) => {
     if (!state.validationResult?.formulario) return;
+
+    // Evitar submissões múltiplas
+    if (state.isSubmitting) {
+      console.log('⚠️ Formulário já está sendo enviado...');
+      return;
+    }
 
     try {
       setState(prev => ({ ...prev, isSubmitting: true }));
@@ -185,19 +288,24 @@ export default function FormPage() {
       console.log('🧹 Dados sanitizados:', sanitizedFormData);
 
       // Verificar se já existe resposta para este formulário
-      const { data: existingResponse, error: checkError } = await supabase
-        .from('respostas')
-        .select('id')
-        .eq('formulario_id', formulario.id)
-        .single();
+      try {
+        const { data: existingResponse, error: checkError } = await supabase
+          .from('respostas')
+          .select('id')
+          .eq('formulario_id', formulario.id)
+          .maybeSingle(); // Usar maybeSingle() ao invés de single() para evitar erro 406
 
-      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
-        console.error('❌ Erro ao verificar resposta existente:', checkError);
-        throw new Error(`Erro ao verificar resposta: ${checkError.message}`);
-      }
+        if (checkError) {
+          console.error('❌ Erro ao verificar resposta existente:', checkError);
+          throw new Error(`Erro ao verificar resposta: ${checkError.message}`);
+        }
 
-      if (existingResponse) {
-        throw new Error('Este formulário já foi respondido. Recarregue a página para ver o status atualizado.');
+        if (existingResponse) {
+          throw new Error('Este formulário já foi respondido. Recarregue a página para ver o status atualizado.');
+        }
+      } catch (checkErr) {
+        console.error('❌ Erro na verificação de resposta existente:', checkErr);
+        // Se não conseguir verificar, continuar com cautela
       }
 
       // Inserir resposta no banco de dados
@@ -270,6 +378,34 @@ export default function FormPage() {
 
       console.log('✅ Resposta inserida com sucesso:', insertData);
 
+      const respostaId = insertData[0].id;
+
+      // Upload das fotos de todas as seções
+      const allPhotos = [
+        { photos: formData.fotos_identificacao || [], secao: 'identificacao' },
+        { photos: formData.fotos_dados_inspecionado || [], secao: 'dados_inspecionado' },
+        { photos: formData.fotos_epi_basico || [], secao: 'epi_basico' },
+        { photos: formData.fotos_epi_altura || [], secao: 'epi_altura' },
+        { photos: formData.fotos_epi_eletrico || [], secao: 'epi_eletrico' },
+        { photos: formData.fotos_inspecao_geral || [], secao: 'inspecao_geral' }
+      ];
+
+      console.log('📸 Iniciando upload das fotos...');
+      let totalPhotosUploaded = 0;
+      for (const { photos, secao } of allPhotos) {
+        if (photos.length > 0) {
+          console.log(`📸 Uploading ${photos.length} fotos para seção: ${secao}`);
+          try {
+            const uploadedPhotos = await uploadPhotos(photos, respostaId, secao);
+            totalPhotosUploaded += uploadedPhotos.length;
+            console.log(`✅ ${uploadedPhotos.length}/${photos.length} fotos enviadas para seção: ${secao}`);
+          } catch (uploadError) {
+            console.error(`❌ Erro no upload das fotos da seção ${secao}:`, uploadError);
+          }
+        }
+      }
+      console.log(`✅ Upload das fotos concluído. Total: ${totalPhotosUploaded} fotos enviadas.`);
+
       // Atualizar status do formulário para "respondido"
       try {
         await updateFormularioStatus(formulario.id, 'respondido');
@@ -289,7 +425,19 @@ export default function FormPage() {
     } catch (error) {
       console.error('Erro ao submeter formulário:', error);
       setState(prev => ({ ...prev, isSubmitting: false }));
-      alert(`Erro ao enviar formulário: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+
+      // Mensagem de erro mais específica
+      let errorMessage = 'Erro desconhecido';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      // Se for erro de rede ou conexão, dar uma mensagem mais amigável
+      if (errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('Failed to fetch')) {
+        errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
+      }
+
+      alert(`Erro ao enviar formulário: ${errorMessage}\n\nSe o problema persistir, entre em contato com o suporte.`);
     }
   };
 

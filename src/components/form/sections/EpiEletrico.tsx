@@ -1,5 +1,8 @@
+import type { PhotoData } from '@/components/shared/PhotoUpload';
+import { QuestionPhotoUpload } from '@/components/shared/PhotoUpload';
 import { Label } from '@/components/ui/label';
 import type { Tables } from '@/lib/supabase/database.types';
+import { useCallback } from 'react';
 import type { FormData } from '../FormContainer';
 
 type Formulario = Tables<'formularios'>;
@@ -39,7 +42,40 @@ const epiEletricoItems: EpiEletricoItem[] = [
   }
 ];
 
-export function EpiEletrico({ data, onChange, errors }: EpiEletricoProps) {
+export function EpiEletrico({ data, onChange, errors, formulario }: EpiEletricoProps) {
+
+  // Handler para fotos da seção - REMOVIDO onChange e data.fotos_epi_eletrico das dependências para evitar loop
+  const handlePhotosChange = useCallback((questionKey: string, photos: PhotoData[]) => {
+    // Usar uma abordagem simples: substituir todas as fotos da pergunta específica
+    const currentPhotos = data.fotos_epi_eletrico || [];
+
+    // Remover fotos antigas desta pergunta específica usando metadata
+    const filteredPhotos = currentPhotos.filter(photo => {
+      const metadata = photo.metadata as any;
+      return metadata?.questionKey !== questionKey;
+    });
+
+    // Adicionar novas fotos com metadata da pergunta (sem modificar o ID original)
+    const photosWithMetadata = photos.map(photo => ({
+      ...photo,
+      metadata: {
+        ...photo.metadata,
+        questionKey,
+        secao: 'epi_eletrico'
+      }
+    }));
+
+    onChange({
+      fotos_epi_eletrico: [...filteredPhotos, ...photosWithMetadata]
+    });
+  }, []); // Removido onChange e data.fotos_epi_eletrico das dependências para evitar loop
+
+  const getPhotosForQuestion = (questionKey: string): PhotoData[] => {
+    return (data.fotos_epi_eletrico || []).filter(photo => {
+      const metadata = photo.metadata as any;
+      return metadata?.questionKey === questionKey;
+    });
+  };
 
   const handleTrabalhoEletricoChange = (value: boolean) => {
     onChange({ trabalho_eletrico: value });
@@ -51,7 +87,8 @@ export function EpiEletrico({ data, onChange, errors }: EpiEletricoProps) {
         epi_luvas_isolantes: undefined,
         epi_calcado_isolante: undefined,
         epi_capacete_classe_b: undefined,
-        observacoes_epi_eletrico: ''
+        observacoes_epi_eletrico: '',
+        fotos_epi_eletrico: [] // Limpar fotos também
       });
     }
   };
@@ -234,6 +271,28 @@ export function EpiEletrico({ data, onChange, errors }: EpiEletricoProps) {
                       </div>
                     )}
                     </div>
+                  </div>
+
+                  {/* Upload de fotos para esta pergunta */}
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <h5 className="font-medium text-gray-900">📷 Fotos</h5>
+                      <p className="text-sm text-gray-500">
+                        {getPhotosForQuestion(item.key).length}/{3}
+                      </p>
+                    </div>
+                    <p className="text-sm text-gray-700 mb-2">
+                      📷 <strong>Obrigatório:</strong> Anexe fotos que mostrem o defeito.
+                    </p>
+                    <QuestionPhotoUpload
+                      questionKey={item.key}
+                      secao="epi_eletrico"
+                      formularioId={formulario.id}
+                      maxPhotos={3}
+                      photos={getPhotosForQuestion(item.key)}
+                      onPhotosChange={handlePhotosChange}
+                      required
+                    />
                   </div>
                 </div>
               );

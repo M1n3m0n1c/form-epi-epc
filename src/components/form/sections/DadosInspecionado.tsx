@@ -1,7 +1,10 @@
+import type { PhotoData } from '@/components/shared/PhotoUpload';
+import { QuestionPhotoUpload } from '@/components/shared/PhotoUpload';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { Tables } from '@/lib/supabase/database.types';
 import { formValidation } from '@/lib/utils/validation';
+import { useCallback } from 'react';
 import type { FormData } from '../FormContainer';
 
 type Formulario = Tables<'formularios'>;
@@ -13,8 +16,12 @@ interface DadosInspecionadoProps {
   formulario: Formulario;
 }
 
+export function DadosInspecionado({ data, onChange, errors, formulario }: DadosInspecionadoProps) {
 
-export function DadosInspecionado({ data, onChange, errors }: DadosInspecionadoProps) {
+  // Handler para fotos da seção - REMOVIDO onChange das dependências para evitar loop
+  const handlePhotosChange = useCallback((_questionKey: string, photos: PhotoData[]) => {
+    onChange({ fotos_dados_inspecionado: photos });
+  }, []); // Removido onChange das dependências
 
   const handleInputChange = (field: keyof FormData, value: string) => {
     // Passar valor diretamente sem sanitização em tempo real
@@ -162,6 +169,26 @@ export function DadosInspecionado({ data, onChange, errors }: DadosInspecionadoP
           </p>
         </div>
 
+      </div>
+
+      {/* Upload de fotos da seção */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">
+          Fotos da Pessoa Inspecionada (opcional)
+        </Label>
+        <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          <p className="text-sm text-gray-600 mb-3">
+            Você pode adicionar fotos relacionadas à identificação da pessoa que está sendo inspecionada.
+          </p>
+          <QuestionPhotoUpload
+            questionKey="dados_inspecionado_geral"
+            secao="dados_inspecionado"
+            formularioId={formulario.id}
+            maxPhotos={2}
+            photos={data.fotos_dados_inspecionado || []}
+            onPhotosChange={handlePhotosChange}
+          />
+        </div>
       </div>
 
       {/* Informações Adicionais */}

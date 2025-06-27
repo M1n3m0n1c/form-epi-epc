@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase/client';
 import {
     compressImage,
@@ -12,7 +11,7 @@ import {
     validateImageFile,
     type CompressionResult
 } from '@/lib/utils/photoCompression';
-import { AlertCircle, Camera, CheckCircle, Eye, Loader2, Trash2, Upload, X } from 'lucide-react';
+import { AlertCircle, Camera, CheckCircle, ChevronDown, ChevronUp, Eye, Loader2, Plus, Trash2, Upload, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 // Tipos para o componente
@@ -72,26 +71,42 @@ export function PhotoUpload({
   className,
   disabled = false
 }: PhotoUploadProps) {
-  const [photos, setPhotos] = useState<PhotoData[]>(initialPhotos);
+  const [photos, setPhotos] = useState<PhotoData[]>(Array.isArray(initialPhotos) ? initialPhotos : []);
   const [, setIsCapturing] = useState(false);
   const [uploadingCount, setUploadingCount] = useState(0);
+  const [showUpload, setShowUpload] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  // Notificar mudanças nas fotos
+  // Ref para evitar loops no useEffect
+  const previousPhotosRef = useRef<PhotoData[]>([]);
+
+  // Notificar mudanças nas fotos - REMOVIDO onPhotosChange das dependências para evitar loop
   useEffect(() => {
-    onPhotosChange?.(photos);
-  }, [photos, onPhotosChange]);
+    if (onPhotosChange && JSON.stringify(photos) !== JSON.stringify(previousPhotosRef.current)) {
+      previousPhotosRef.current = photos;
+      onPhotosChange(photos);
+    }
+  }, [photos]); // Removido onPhotosChange das dependências
+
+  // Sincronizar estado interno com initialPhotos quando ela mudar
+  useEffect(() => {
+    if (Array.isArray(initialPhotos)) {
+      setPhotos(initialPhotos);
+    }
+  }, [initialPhotos]);
 
   // Limpar URLs de preview ao desmontar
   useEffect(() => {
     return () => {
-      photos.forEach(photo => {
-        if (photo.previewUrl) {
-          revokePreviewUrl(photo.previewUrl);
-        }
-      });
+      if (Array.isArray(photos)) {
+        photos.forEach(photo => {
+          if (photo.previewUrl) {
+            revokePreviewUrl(photo.previewUrl);
+          }
+        });
+      }
     };
   }, []);
 
@@ -102,7 +117,7 @@ export function PhotoUpload({
     const fileArray = Array.from(files);
 
     // Verificar limite de fotos
-    if (photos.length + fileArray.length > maxPhotos) {
+    if ((Array.isArray(photos) ? photos.length : 0) + fileArray.length > maxPhotos) {
       onError?.(`Máximo ${maxPhotos} fotos permitidas por seção`);
       return;
     }
@@ -152,7 +167,7 @@ export function PhotoUpload({
     if (newPhotos.length > 0) {
       setPhotos(prev => [...prev, ...newPhotos]);
     }
-  }, [photos.length, maxPhotos, secao, onError]);
+  }, [Array.isArray(photos) ? photos.length : 0, maxPhotos, secao, onError]);
 
   /**
    * Remove uma foto
@@ -219,9 +234,10 @@ export function PhotoUpload({
 
     } catch (error) {
       console.error('Erro no upload:', error);
+
       const errorMessage = error instanceof Error ? error.message : 'Erro no upload';
 
-      // Atualizar status de erro
+      // Atualizar estado com erro
       setPhotos(prev => prev.map(p =>
         p.id === photo.id
           ? { ...p, uploadStatus: 'error', errorMessage }
@@ -238,33 +254,35 @@ export function PhotoUpload({
   const uploadAllPhotos = useCallback(async () => {
     const pendingPhotos = photos.filter(p => p.uploadStatus === 'pending');
 
-    if (pendingPhotos.length === 0) {
-      return;
-    }
+    if (pendingPhotos.length === 0) return;
 
     setUploadingCount(pendingPhotos.length);
 
-    const uploadedPhotos: PhotoData[] = [];
-
     try {
-      // Upload sequencial para evitar sobrecarga
-      for (const photo of pendingPhotos) {
-        try {
-          const uploadedPhoto = await uploadPhoto(photo);
-          uploadedPhotos.push(uploadedPhoto);
-        } catch (error) {
-          console.error(`Erro no upload da foto ${photo.id}:`, error);
-        }
+      const uploadPromises = pendingPhotos.map(photo => uploadPhoto(photo));
+      const results = await Promise.allSettled(uploadPromises);
+
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      const errorCount = results.filter(r => r.status === 'rejected').length;
+
+      if (errorCount > 0) {
+        onError?.(`${errorCount} foto(s) falharam no upload`);
       }
 
-      onUploadComplete?.(uploadedPhotos);
+      if (successCount > 0) {
+        const uploadedPhotos = photos.filter(p => p.uploadStatus === 'uploaded');
+        onUploadComplete?.(uploadedPhotos);
+      }
+
     } finally {
       setUploadingCount(0);
     }
-  }, [photos, uploadPhoto, onUploadComplete]);
+  }, [photos, uploadPhoto, onError, onUploadComplete]);
 
-  // Handlers para inputs
-  const handleGallerySelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  /**
+   * Handlers de input
+   */
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
       addPhotos(files);
@@ -276,130 +294,137 @@ export function PhotoUpload({
   const handleCameraCapture = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      addPhotos(files);
+      setIsCapturing(true);
+      addPhotos(files).finally(() => {
+        setIsCapturing(false);
+      });
     }
     // Limpar input
     e.target.value = '';
-    setIsCapturing(false);
   }, [addPhotos]);
 
-  // Estatísticas
-  const pendingCount = photos.filter(p => p.uploadStatus === 'pending').length;
-  const uploadedCount = photos.filter(p => p.uploadStatus === 'uploaded').length;
-  const errorCount = photos.filter(p => p.uploadStatus === 'error').length;
+  const openFileDialog = () => {
+    fileInputRef.current?.click();
+  };
+
+  const openCameraDialog = () => {
+    cameraInputRef.current?.click();
+  };
+
+  const hasPhotos = Array.isArray(photos) && photos.length > 0;
+  const canAddMore = (Array.isArray(photos) ? photos.length : 0) < maxPhotos;
 
   return (
     <div className={`space-y-4 ${className}`}>
-      {/* Header com estatísticas */}
+      {/* Botão para mostrar/esconder área de upload */}
       <div className="flex items-center justify-between">
-        <Label className="text-base font-medium">
-          📸 Fotos - {secao.charAt(0).toUpperCase() + secao.slice(1)}
-        </Label>
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <span>{photos.length}/{maxPhotos}</span>
-          {uploadingCount > 0 && (
-            <span className="flex items-center gap-1">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Enviando {uploadingCount}
-            </span>
-          )}
-        </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setShowUpload(!showUpload)}
+          disabled={disabled}
+          className="flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Adicionar Fotos
+          {showUpload ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </Button>
+
+        {hasPhotos && (
+          <span className="text-sm text-gray-600">
+            {photos.length}/{maxPhotos} fotos
+          </span>
+        )}
       </div>
 
-      {/* Status summary */}
-      {photos.length > 0 && (
-        <div className="flex items-center gap-4 text-sm">
-          {pendingCount > 0 && (
-            <span className="flex items-center gap-1 text-yellow-600">
-              <AlertCircle className="w-4 h-4" />
-              {pendingCount} pendente{pendingCount !== 1 ? 's' : ''}
-            </span>
-          )}
-          {uploadedCount > 0 && (
-            <span className="flex items-center gap-1 text-green-600">
-              <CheckCircle className="w-4 h-4" />
-              {uploadedCount} enviada{uploadedCount !== 1 ? 's' : ''}
-            </span>
-          )}
-          {errorCount > 0 && (
-            <span className="flex items-center gap-1 text-red-600">
-              <X className="w-4 h-4" />
-              {errorCount} erro{errorCount !== 1 ? 's' : ''}
-            </span>
-          )}
-        </div>
+      {/* Área de upload - só aparece quando showUpload é true */}
+      {showUpload && (
+        <Card>
+          <CardContent className="p-4">
+            {/* Inputs ocultos */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+              disabled={disabled || !canAddMore}
+            />
+
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleCameraCapture}
+              className="hidden"
+              disabled={disabled || !canAddMore}
+            />
+
+            {/* Botões de ação */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {allowGallery && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={openFileDialog}
+                  disabled={disabled || !canAddMore}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  Galeria
+                </Button>
+              )}
+
+              {allowCamera && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={openCameraDialog}
+                  disabled={disabled || !canAddMore}
+                  className="flex items-center gap-2"
+                >
+                  <Camera className="w-4 h-4" />
+                  Câmera
+                </Button>
+              )}
+
+              {hasPhotos && (
+                <Button
+                  type="button"
+                  onClick={uploadAllPhotos}
+                  disabled={disabled || uploadingCount > 0}
+                  className="flex items-center gap-2"
+                >
+                  {uploadingCount > 0 ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4" />
+                  )}
+                  {uploadingCount > 0 ? `Enviando ${uploadingCount}...` : 'Enviar Todas'}
+                </Button>
+              )}
+            </div>
+
+            {/* Informações */}
+            <div className="text-xs text-gray-500 space-y-1">
+              <p>• Máximo {maxPhotos} fotos por seção</p>
+              <p>• Formatos aceitos: JPG, PNG, WEBP</p>
+              <p>• Tamanho máximo: 10MB por foto</p>
+              {!canAddMore && (
+                <p className="text-orange-600 font-medium">
+                  • Limite de fotos atingido
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Botões de ação */}
-      <div className="flex gap-2">
-        {allowGallery && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={disabled || photos.length >= maxPhotos}
-            className="flex items-center gap-2"
-          >
-            <Upload className="w-4 h-4" />
-            Galeria
-          </Button>
-        )}
-
-        {allowCamera && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setIsCapturing(true);
-              cameraInputRef.current?.click();
-            }}
-            disabled={disabled || photos.length >= maxPhotos}
-            className="flex items-center gap-2"
-          >
-            <Camera className="w-4 h-4" />
-            Câmera
-          </Button>
-        )}
-
-        {pendingCount > 0 && formularioId && (
-          <Button
-            type="button"
-            onClick={uploadAllPhotos}
-            disabled={disabled || uploadingCount > 0}
-            className="flex items-center gap-2"
-          >
-            {uploadingCount > 0 ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Upload className="w-4 h-4" />
-            )}
-            Enviar Todas
-          </Button>
-        )}
-      </div>
-
-      {/* Inputs ocultos */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        onChange={handleGallerySelect}
-        className="hidden"
-      />
-
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handleCameraCapture}
-        className="hidden"
-      />
-
       {/* Grid de fotos */}
-      {photos.length > 0 && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {hasPhotos && (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {photos.map((photo) => (
             <PhotoPreview
               key={photo.id}
@@ -413,18 +438,12 @@ export function PhotoUpload({
       )}
 
       {/* Estado vazio */}
-      {photos.length === 0 && (
-        <Card className="border-dashed border-2 border-gray-300">
-          <CardContent className="flex flex-col items-center justify-center py-8">
-            <Camera className="w-12 h-12 text-gray-400 mb-4" />
-            <p className="text-gray-500 text-center mb-4">
-              Nenhuma foto adicionada ainda
-            </p>
-            <p className="text-sm text-gray-400 text-center">
-              Use os botões acima para adicionar fotos via câmera ou galeria
-            </p>
-          </CardContent>
-        </Card>
+      {!hasPhotos && !showUpload && (
+        <div className="text-center py-4">
+          <p className="text-sm text-gray-500">
+            Nenhuma foto adicionada ainda
+          </p>
+        </div>
       )}
     </div>
   );
@@ -439,18 +458,20 @@ interface PhotoPreviewProps {
 }
 
 function PhotoPreview({ photo, onRemove, onRetryUpload, disabled }: PhotoPreviewProps) {
-  const [showFullscreen, setShowFullscreen] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const getStatusIcon = () => {
     switch (photo.uploadStatus) {
       case 'pending':
-        return <AlertCircle className="w-4 h-4 text-yellow-500" />;
+        return <Upload className="w-4 h-4 text-blue-500" />;
       case 'uploading':
         return <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />;
       case 'uploaded':
         return <CheckCircle className="w-4 h-4 text-green-500" />;
       case 'error':
-        return <X className="w-4 h-4 text-red-500" />;
+        return <AlertCircle className="w-4 h-4 text-red-500" />;
+      default:
+        return null;
     }
   };
 
@@ -461,16 +482,18 @@ function PhotoPreview({ photo, onRemove, onRetryUpload, disabled }: PhotoPreview
       case 'uploading':
         return `Enviando... ${photo.uploadProgress || 0}%`;
       case 'uploaded':
-        return 'Enviada';
+        return 'Enviado';
       case 'error':
         return photo.errorMessage || 'Erro';
+      default:
+        return '';
     }
   };
 
   return (
     <>
-      <Card className="overflow-hidden">
-        <div className="relative aspect-video bg-gray-100">
+      <Card className="relative group overflow-hidden">
+        <div className="aspect-square relative">
           <img
             src={photo.previewUrl}
             alt={photo.metadata.fileName}
@@ -478,53 +501,53 @@ function PhotoPreview({ photo, onRemove, onRetryUpload, disabled }: PhotoPreview
           />
 
           {/* Overlay com ações */}
-          <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center opacity-0 hover:opacity-100">
-            <div className="flex gap-2">
+          <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => setShowPreview(true)}
+              className="h-8 w-8 p-0"
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
+
+            {photo.uploadStatus === 'error' && (
               <Button
+                type="button"
                 size="sm"
                 variant="secondary"
-                onClick={() => setShowFullscreen(true)}
-                className="bg-white bg-opacity-90 hover:bg-opacity-100"
-              >
-                <Eye className="w-4 h-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={onRemove}
+                onClick={onRetryUpload}
                 disabled={disabled}
-                className="bg-red-500 bg-opacity-90 hover:bg-opacity-100"
+                className="h-8 w-8 p-0"
               >
-                <Trash2 className="w-4 h-4" />
+                <Upload className="w-4 h-4" />
               </Button>
-            </div>
+            )}
+
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              onClick={onRemove}
+              disabled={disabled}
+              className="h-8 w-8 p-0"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
           </div>
 
-          {/* Status indicator */}
+          {/* Status badge */}
           <div className="absolute top-2 right-2 bg-white bg-opacity-90 rounded-full p-1">
             {getStatusIcon()}
           </div>
         </div>
 
-        <CardContent className="p-3">
+        <CardContent className="p-2">
           <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium truncate">
-                {photo.metadata.fileName}
-              </span>
-              {photo.uploadStatus === 'error' && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={onRetryUpload}
-                  disabled={disabled}
-                  className="text-xs h-6 px-2"
-                >
-                  Tentar novamente
-                </Button>
-              )}
-            </div>
-
+            <p className="text-xs font-medium truncate">
+              {photo.metadata.fileName}
+            </p>
             <div className="flex items-center justify-between text-xs text-gray-500">
               <span>{formatFileSize(photo.metadata.fileSize)}</span>
               <span className="flex items-center gap-1">
@@ -532,19 +555,16 @@ function PhotoPreview({ photo, onRemove, onRetryUpload, disabled }: PhotoPreview
                 {getStatusText()}
               </span>
             </div>
-
-            {photo.compressionResult && photo.compressionResult.compressionRatio && photo.compressionResult.compressionRatio > 1 && (
-              <div className="text-xs text-green-600">
-                Comprimida {Math.round((1 - 1/photo.compressionResult.compressionRatio) * 100)}%
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Modal fullscreen */}
-      {showFullscreen && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
+      {/* Modal de preview */}
+      {showPreview && (
+        <div
+          className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center p-4"
+          onClick={() => setShowPreview(false)}
+        >
           <div className="relative max-w-4xl max-h-full">
             <img
               src={photo.previewUrl}
@@ -552,10 +572,11 @@ function PhotoPreview({ photo, onRemove, onRetryUpload, disabled }: PhotoPreview
               className="max-w-full max-h-full object-contain"
             />
             <Button
-              className="absolute top-4 right-4"
+              type="button"
               variant="secondary"
               size="sm"
-              onClick={() => setShowFullscreen(false)}
+              onClick={() => setShowPreview(false)}
+              className="absolute top-4 right-4"
             >
               <X className="w-4 h-4" />
             </Button>
@@ -563,6 +584,54 @@ function PhotoPreview({ photo, onRemove, onRetryUpload, disabled }: PhotoPreview
         </div>
       )}
     </>
+  );
+}
+
+// Componente simplificado para uso dentro das perguntas
+interface QuestionPhotoUploadProps {
+  questionKey: string;
+  secao: string;
+  formularioId?: string;
+  photos: PhotoData[];
+  onPhotosChange: (questionKey: string, photos: PhotoData[]) => void;
+  maxPhotos?: number;
+  required?: boolean;
+  disabled?: boolean;
+}
+
+export function QuestionPhotoUpload({
+  questionKey,
+  secao,
+  formularioId,
+  photos,
+  onPhotosChange,
+  maxPhotos = 3,
+  required = false,
+  disabled = false
+}: QuestionPhotoUploadProps) {
+
+  const handlePhotosChange = useCallback((updatedPhotos: PhotoData[]) => {
+    onPhotosChange(questionKey, updatedPhotos);
+  }, [questionKey]); // Removido onPhotosChange das dependências para evitar loop
+
+  return (
+    <div className="space-y-2">
+      {required && (
+        <p className="text-sm text-red-600">
+          * Pelo menos uma foto é obrigatória para esta pergunta
+        </p>
+      )}
+
+      <PhotoUpload
+        secao={secao}
+        formularioId={formularioId}
+        maxPhotos={maxPhotos}
+        onPhotosChange={handlePhotosChange}
+        initialPhotos={Array.isArray(photos) ? photos : []}
+        disabled={disabled}
+        className="border-l-4 border-blue-200 pl-4"
+      />
+    </div>
   );
 }
 

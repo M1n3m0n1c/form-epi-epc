@@ -131,7 +131,7 @@
 
 - [ ] 6.0 Sistema de Geração de Relatórios e Funcionalidades Finais
   - [ ] 6.1 Implementar geração de relatórios em PDF com fotos integradas
-  - [ ] 6.2 Desenvolver exportação de relatórios em formato DOCX
+  - [ ] Ignorar por enquanto: 6.2 Desenvolver exportação de relatórios em formato DOCX
   - [ ] 6.3 Criar templates de relatório com layout profissional
   - [ ] 6.4 Implementar download automático de relatórios após resposta
   - [ ] 6.5 Adicionar funcionalidade de envio por email (opcional)

@@ -1,5 +1,7 @@
+import PhotoUpload, { type PhotoData } from '@/components/shared/PhotoUpload';
 import { Label } from '@/components/ui/label';
 import type { Tables } from '@/lib/supabase/database.types';
+import { useCallback } from 'react';
 import type { FormData } from '../FormContainer';
 
 type Formulario = Tables<'formularios'>;
@@ -45,7 +47,7 @@ const inspecaoItems: InspecaoItem[] = [
   }
 ];
 
-export function InspecaoGeral({ data, onChange, errors }: InspecaoGeralProps) {
+export function InspecaoGeral({ data, onChange, errors, formulario }: InspecaoGeralProps) {
 
   const handleInspecaoChange = (key: keyof FormData, value: boolean) => {
     onChange({ [key]: value });
@@ -54,6 +56,10 @@ export function InspecaoGeral({ data, onChange, errors }: InspecaoGeralProps) {
   const handleObservacoesChange = (value: string) => {
     onChange({ observacoes_inspecao: value });
   };
+
+  const handlePhotosChange = useCallback((photos: PhotoData[]) => {
+    onChange({ fotos_inspecao_geral: photos });
+  }, []);
 
   const getCompletionStatus = () => {
     const totalItems = inspecaoItems.length;
@@ -321,6 +327,32 @@ export function InspecaoGeral({ data, onChange, errors }: InspecaoGeralProps) {
           <span>Inclua recomendações e observações gerais da inspeção</span>
           <span>{data.observacoes_inspecao.length}/500</span>
         </div>
+      </div>
+
+      {/* Upload de fotos obrigatórias */}
+      <div className="p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+        <h4 className="font-bold text-red-900 mb-4 text-lg">📸 Fotos do Inspecionado usando EPIs (Obrigatório)</h4>
+        <p className="text-sm text-red-800 mb-4">
+          É obrigatório adicionar pelo menos uma foto do colaborador inspecionado usando todos os EPIs verificados.
+          Esta foto servirá como comprovação da inspeção realizada.
+        </p>
+
+        <PhotoUpload
+          secao="inspecao_geral"
+          formularioId={formulario.id}
+          maxPhotos={5}
+          initialPhotos={data.fotos_inspecao_geral}
+          onPhotosChange={handlePhotosChange}
+          onError={(msg) => console.error(msg)}
+        />
+
+        {errors.includes('É obrigatório adicionar pelo menos uma foto do inspecionado usando os EPIs') && (
+          <div className="mt-3 p-3 bg-red-100 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-800">
+              ⚠️ <strong>Obrigatório:</strong> Adicione pelo menos uma foto do inspecionado usando os EPIs para continuar.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Declaração de Responsabilidade */}

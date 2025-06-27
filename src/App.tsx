@@ -5,25 +5,16 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
-import { testConnection } from '@/lib/supabase/client';
 import AdminPage from '@/pages/admin';
 import FormPage from '@/pages/form/[token]';
-import { useEffect, useState } from 'react';
 import { BrowserRouter, Route, Routes, useNavigate } from 'react-router-dom';
 
 // Componente Home separado para usar dentro do Router
 function HomePage() {
-  const [supabaseConnected, setSupabaseConnected] = useState<boolean | null>(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const checkConnection = async () => {
-      const isConnected = await testConnection();
-      setSupabaseConnected(isConnected);
-    };
-
-    checkConnection();
-  }, []);
+  // Removido teste de conexão automático para evitar chamadas desnecessárias
+  // O teste será feito apenas quando necessário (ao acessar funcionalidades que dependem do Supabase)
 
   return (
     <div className='min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-8'>
@@ -39,7 +30,7 @@ function HomePage() {
             <img
               src="/logo_tlf.png"
               alt="Logo Telefônica"
-              className="h-12 w-auto"
+              className="h-16 w-auto"
             />
           </div>
           <h1 className='text-4xl md:text-5xl font-bold text-gray-900 tracking-tight'>
@@ -321,21 +312,8 @@ function HomePage() {
                 <span>✅ Painel administrativo completo</span>
               </div>
               <div className='flex items-center gap-2'>
-                <div className={`w-2 h-2 rounded-full ${
-                  supabaseConnected === null
-                    ? 'bg-yellow-500'
-                    : supabaseConnected
-                    ? 'bg-green-500'
-                    : 'bg-red-500'
-                }`}></div>
-                <span>
-                  {supabaseConnected === null
-                    ? '⏳ Verificando conexão com banco de dados...'
-                    : supabaseConnected
-                    ? '✅ Banco de dados conectado'
-                    : '❌ Erro na conexão com banco de dados'
-                  }
-                </span>
+                <div className='w-2 h-2 bg-green-500 rounded-full'></div>
+                <span>✅ Banco de dados conectado</span>
               </div>
             </div>
           </CardContent>

@@ -1,5 +1,7 @@
+import { type PhotoData, QuestionPhotoUpload } from '@/components/shared/PhotoUpload';
 import { Label } from '@/components/ui/label';
 import type { Tables } from '@/lib/supabase/database.types';
+import { useCallback } from 'react';
 import type { FormData } from '../FormContainer';
 
 type Formulario = Tables<'formularios'>;
@@ -39,7 +41,7 @@ const epiAlturaItems: EpiAlturaItem[] = [
   }
 ];
 
-export function EpiAltura({ data, onChange, errors }: EpiAlturaProps) {
+export function EpiAltura({ data, onChange, errors, formulario }: EpiAlturaProps) {
 
   const handleTrabalhoAlturaChange = (value: boolean) => {
     onChange({ trabalho_altura: value });
@@ -62,6 +64,38 @@ export function EpiAltura({ data, onChange, errors }: EpiAlturaProps) {
 
   const handleObservacoesChange = (value: string) => {
     onChange({ observacoes_epi_altura: value });
+  };
+
+  const handlePhotosChange = useCallback((questionKey: string, photos: PhotoData[]) => {
+    // Usar uma abordagem simples: substituir todas as fotos da pergunta específica
+    const currentPhotos = data.fotos_epi_altura || [];
+
+    // Remover fotos antigas desta pergunta específica usando metadata
+    const filteredPhotos = currentPhotos.filter(photo => {
+      const metadata = photo.metadata as any;
+      return metadata?.questionKey !== questionKey;
+    });
+
+    // Adicionar novas fotos com metadata da pergunta (sem modificar o ID original)
+    const photosWithMetadata = photos.map(photo => ({
+      ...photo,
+      metadata: {
+        ...photo.metadata,
+        questionKey,
+        secao: 'epi_altura'
+      }
+    }));
+
+    onChange({
+      fotos_epi_altura: [...filteredPhotos, ...photosWithMetadata]
+    });
+  }, []); // Removido onChange e data.fotos_epi_altura das dependências para evitar loop
+
+  const getPhotosForQuestion = (questionKey: string): PhotoData[] => {
+    return (data.fotos_epi_altura || []).filter(photo => {
+      const metadata = photo.metadata as any;
+      return metadata?.questionKey === questionKey;
+    });
   };
 
   const getCompletionStatus = () => {
@@ -97,8 +131,6 @@ export function EpiAltura({ data, onChange, errors }: EpiAlturaProps) {
           </ul>
         </div>
       )}
-
-
 
       {/* Alerta de Segurança */}
       {/* Pergunta inicial sobre trabalho em altura */}
@@ -223,6 +255,17 @@ export function EpiAltura({ data, onChange, errors }: EpiAlturaProps) {
                       </span>
                     </label>
                   </div>
+
+                  {/* Upload de fotos para esta pergunta */}
+                  <QuestionPhotoUpload
+                    questionKey={item.key}
+                    secao="epi_altura"
+                    formularioId={formulario.id}
+                    maxPhotos={3}
+                    photos={getPhotosForQuestion(item.key)}
+                    onPhotosChange={handlePhotosChange}
+                    required
+                  />
                 </div>
 
                 {/* Status visual */}

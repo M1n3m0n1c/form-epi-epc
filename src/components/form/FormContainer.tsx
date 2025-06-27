@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Tables } from '@/lib/supabase/database.types';
 import { useEffect, useState } from 'react';
+import type { PhotoData } from '../shared/PhotoUpload';
 import { DadosInspecionado } from './sections/DadosInspecionado';
 import { EpiAltura } from './sections/EpiAltura';
 import { EpiBasico } from './sections/EpiBasico';
@@ -59,6 +60,14 @@ export interface FormData {
 
   // Declaração de Responsabilidade
   declaracao_responsabilidade: boolean;
+
+  // Fotos por seção
+  fotos_identificacao: PhotoData[];
+  fotos_dados_inspecionado: PhotoData[];
+  fotos_epi_basico: PhotoData[];
+  fotos_epi_altura: PhotoData[];
+  fotos_epi_eletrico: PhotoData[];
+  fotos_inspecao_geral: PhotoData[]; // Obrigatória pelo menos uma foto
 }
 
 interface FormContainerProps {
@@ -70,12 +79,12 @@ interface FormContainerProps {
 type FormSection = 'identificacao' | 'dados_inspecionado' | 'epi_basico' | 'epi_altura' | 'epi_eletrico' | 'inspecao_geral';
 
 const sectionTitles: Record<FormSection, string> = {
-  identificacao: '👤 Dados do Técnico/Engenheiro',
-  dados_inspecionado: '🔍 Dados da Pessoa Inspecionada',
-  epi_basico: '🦺 EPI Básico',
-  epi_altura: '🪜 EPI para Trabalho em Altura',
-  epi_eletrico: '⚡ EPI para Trabalhos Elétricos',
-  inspecao_geral: '🔍 Inspeção Geral'
+  identificacao: 'Dados do Técnico/Engenheiro',
+  dados_inspecionado: 'Dados da Pessoa Inspecionada',
+  epi_basico: 'EPI Básico',
+  epi_altura: 'EPI para Trabalho em Altura',
+  epi_eletrico: 'EPI para Trabalhos Elétricos',
+  inspecao_geral: 'Inspeção Geral'
 };
 
 export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerProps) {
@@ -128,6 +137,14 @@ export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerP
 
     // Declaração de Responsabilidade
     declaracao_responsabilidade: false,
+
+    // Fotos por seção
+    fotos_identificacao: [],
+    fotos_dados_inspecionado: [],
+    fotos_epi_basico: [],
+    fotos_epi_altura: [],
+    fotos_epi_eletrico: [],
+    fotos_inspecao_geral: [],
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -213,6 +230,11 @@ export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerP
           formData[field as keyof FormData] === undefined
         );
         if (hasUndefinedInspecao) errors.push('Todos os itens de inspeção devem ser verificados');
+
+        // Validar foto obrigatória na inspeção geral
+        if (formData.fotos_inspecao_geral.length === 0) {
+          errors.push('É obrigatório adicionar pelo menos uma foto do inspecionado usando os EPIs');
+        }
 
         // Validar declaração de responsabilidade
         if (!formData.declaracao_responsabilidade) {
@@ -403,7 +425,7 @@ export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerP
                       }`}
                     >
                       <div className="text-xs">
-                        {isActive && '👤'} {isCompleted && '✅'} {hasErrors && '⚠️'}
+                        {isActive && '⏳'} {isCompleted && '✅'} {hasErrors && '⚠️'}
                       </div>
                       <div className="text-xs mt-0.5">
                         {section === 'identificacao' && 'Técnico'}
@@ -424,10 +446,10 @@ export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerP
               <div className="border-t border-blue-300 pt-2">
                 <div className="flex items-center justify-between mb-1">
                   <h4 className="text-xs font-medium text-blue-800">
-                    {currentSection === 'epi_basico' && '🦺 EPI Básico'}
-                    {currentSection === 'epi_altura' && '🪜 Trabalho em Altura'}
-                    {currentSection === 'epi_eletrico' && '⚡ Trabalhos Elétricos'}
-                    {currentSection === 'inspecao_geral' && '🔍 Inspeção Geral'}
+                    {currentSection === 'epi_basico' && 'EPI Básico'}
+                    {currentSection === 'epi_altura' && 'Trabalho em Altura'}
+                    {currentSection === 'epi_eletrico' && 'Trabalhos Elétricos'}
+                    {currentSection === 'inspecao_geral' && 'Inspeção Geral'}
                   </h4>
                   <span className="text-xs text-blue-700">
                     {getSectionProgress(currentSection).completed}/{getSectionProgress(currentSection).total}
@@ -456,8 +478,8 @@ export function FormContainer({ formulario, onSubmit, onCancel }: FormContainerP
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              {currentSection === 'identificacao' && '👤'}
-              {currentSection === 'dados_inspecionado' && '🔍'}
+              {currentSection === 'identificacao' && '👨‍💼'}
+              {currentSection === 'dados_inspecionado' && '👷‍♂️'}
               {currentSection === 'epi_basico' && '🦺'}
               {currentSection === 'epi_altura' && '🪜'}
               {currentSection === 'epi_eletrico' && '⚡'}
